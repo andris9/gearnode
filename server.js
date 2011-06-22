@@ -24,7 +24,25 @@ GearmanWorker.prototype.addServer = function(server_name, server_port){
         functions: []
     };
     
+    this.servers[server_name].connection.on("error", function(err){
+        console.log("Error with "+server_name);
+        //console.log(err.message);
+        console.log(err.stack);
+    });
+    
+    this.servers[server_name].connection.on("job", this.runJob.bind(this, server_name));
+    
     this.update(server_name);
+}
+
+GearmanWorker.prototype.runJob = function(server_name, handle, func_name, payload, uid){
+    uid = uid || null;
+    console.log(arguments);
+    if(this.functions[func_name]){
+        this.servers[server_name].connection.submitJob(handle, this.functions[func_name](payload));
+    }else{
+        this.servers[server_name].connection.submitJob(handle, 0);
+    }
 }
 
 GearmanWorker.prototype.removeServer = function(server_name){
@@ -121,19 +139,34 @@ GearmanWorker.prototype.removeFunction = function(name){
     }
 }
 
+String.prototype.reverse = function(){
+    splitext = this.split("");
+    revertext = splitext.reverse();
+    reversed = revertext.join("");
+    return reversed;
+}
+
 worker= new GearmanWorker();
 worker.addServer("localhost", 7003);
-worker.addFunction("reverse", "reverse_fn");
-worker.addFunction("reverse2", "reverse_fn");
-console.log(worker)
+worker.addFunction("reverse", function(payload){
+    var str = payload.toString("utf-8");
+    return str.reverse();
+});
 
+//worker.addFunction("reverse2", "reverse_fn");
+
+/*
 setTimeout(function(){
     worker.removeFunction("reverse2");
+    worker.servers.localhost.connection.sendCommand({
+        type:"ECHO_RES",
+        params:["ABC"],
+        pipe: true})
 },1000)
-
+*/
+/*
 setTimeout(function(){
     worker.removeServer("localhost");
-    console.log(worker)
 },4000)
-
+*/
 
