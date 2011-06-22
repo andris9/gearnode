@@ -246,12 +246,13 @@ GearmanConnection.prototype.runCommand = function(command){
     console.log("-----");
     
     // saada teele
-    this.socket.write(buf, (function(){
-        // kui saadetud, käivita järgmine
-        // TODO: selle võiks ehk välja tõsta, käsud saab korraga saata
-        this.processQueue();
+    process.nextTick((function(){
+        this.socket.write(buf, (function(){
+            // kui saadetud, käivita järgmine
+            // TODO: selle võiks ehk välja tõsta, käsud saab korraga saata
+            this.processQueue();
+        }).bind(this));    
     }).bind(this));
-    
 }
 
 GearmanConnection.prototype.connect = function(){
