@@ -102,6 +102,8 @@ GearmanConnection.packet_types_reversed = {
 GearmanConnection.param_count = {
     ERROR: ["string","string"],
     JOB_ASSIGN: ["string","string", "buffer"],
+    JOB_CREATED: ["string"],
+    WORK_COMPLETE: ["string", "buffer"]
 }
 
 GearmanConnection.prototype.sendCommand = function(command){
@@ -123,10 +125,6 @@ GearmanConnection.prototype.sendCommand = function(command){
 }
 
 GearmanConnection.prototype.addFunction = function(func_name){
-    if(this.failed){
-        return false;
-    }
-    
     this.sendCommand({
         type: "CAN_DO",
         params: [func_name]
@@ -136,21 +134,17 @@ GearmanConnection.prototype.addFunction = function(func_name){
         type: "GRAB_JOB",
         pipe: true
     });
-    
-    return true;
 }
 
 GearmanConnection.prototype.removeFunction = function(func_name){
-    if(this.failed){
-        return false;
-    }
-    
     this.sendCommand({
         type: "CANT_DO",
         params: [func_name]
     });
-    
-    return true;
+}
+
+GearmanConnection.prototype.removeAllFunction = function(){
+    this.sendCommand("RESET_ABILITIES");
 }
 
 GearmanConnection.prototype.processQueue = function(){
@@ -250,6 +244,7 @@ GearmanConnection.prototype.runCommand = function(command){
         this.socket.write(buf, (function(){
             // kui saadetud, käivita järgmine
             // TODO: selle võiks ehk välja tõsta, käsud saab korraga saata
+            console.log("--> data sent");
             this.processQueue();
         }).bind(this));    
     }).bind(this));
@@ -357,7 +352,8 @@ GearmanConnection.prototype.receive = function(chunk){
     buf.copy(params, 0, 12);
     
     console.log("-->");
-    console.log(type, params, piped);
+    console.log(type, params);
+    console.log("str: "+params.toString("ascii").replace(/\u0000/g,"-0-").replace(/\n/g,"-N-").replace(/\r/g,"-R-"));
     
     this.handleCommand(type, params, piped);
 }
@@ -402,11 +398,35 @@ GearmanConnection.prototype.handleCommand = function(type, params, command){
     }
 }
 
-GearmanConnection.prototype.submitJob = function(handle, payload){
+GearmanConnection.prototype.jobComplete = function(handle, payload){
     console.log(arguments);
     this.sendCommand({
         type: "WORK_COMPLETE",
         params: [handle, payload]
+    });
+}
+
+GearmanConnection.prototype.jobFail = function(handle){
+    console.log(arguments);
+    this.sendCommand({
+        type: "WORK_FAIL",
+        params: [handle]
+    });
+}
+
+GearmanConnection.prototype.jobError = function(handle, message){
+    console.log(arguments);
+    this.sendCommand({
+        type: "WORK_EXCEPTION",
+        params: [handle, message]
+    });
+}
+
+GearmanConnection.prototype.jobData = function(handle, data){
+    console.log(arguments);
+    this.sendCommand({
+        type: "WORK_DATA",
+        params: [handle, data]
     });
 }
 
@@ -430,3 +450,19 @@ GearmanConnection.prototype.handler_JOB_ASSIGN_UNIQ = function(command, handle, 
     this.emit("job", handle, func_name, payload, uid);
 }
 
+
+GearmanConnection.prototype.handler_JOB_CREATED = function(command, handle){
+    console.log(handle);
+}
+
+GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, response){
+    console.log(arguments);
+}
+
+GearmanConnection.prototype.submitJob = function(func_name, uid, data){
+    this.sendCommand({
+        type: "SUBMIT_JOB",
+        params: [func_name, uid, data],
+        pipe: true
+    });
+}
