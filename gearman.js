@@ -1,12 +1,17 @@
-var GearmanConnection = require("./gearman-connection");
+var GearmanConnection = require("./gearman-connection"),
+    EventEmitter = require('events').EventEmitter,
+    utillib = require("util");
 
 function Gearman(){
+    EventEmitter.call(this);
+    
     this.server_names = [];
     this.servers = {};
     
     this.function_names = [];
     this.functions = {};
 }
+utillib.inherits(Gearman, EventEmitter);
 
 Gearman.prototype.addServer = function(server_name, server_port){
     server_name = (server_name || "127.0.0.1").toLowerCase().trim();
@@ -32,12 +37,27 @@ Gearman.prototype.addServer = function(server_name, server_port){
     
     this.servers[server_name].connection.on("job", this.runJob.bind(this, server_name));
     
+    this.servers[server_name].connection.on("created", (function(handle){
+        this.emit("created", handle);
+    }).bind(this));
+    
+    this.servers[server_name].connection.on("complete", (function(handle, response){
+        this.emit("complete", handle, response);
+    }).bind(this));
+    
+    this.servers[server_name].connection.on("exception", (function(handle, error){
+        this.emit("exception", handle, error);
+    }).bind(this));
+    
+    this.servers[server_name].connection.on("fail", (function(handle){
+        this.emit("fail", handle);
+    }).bind(this));
+    
     this.update(server_name);
 }
 
 Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
     uid = uid || null;
-    console.log(arguments);
     if(this.functions[func_name]){
         this.servers[server_name].connection.jobComplete(handle, this.functions[func_name](payload));
     }else{
@@ -144,11 +164,16 @@ Gearman.prototype.submitJob = function(func_name, payload){
     }
 
     this.server_names.forEach((function(server_name){
-        this.servers[server_name].connection.submitJob(func_name, '', payload);
-    }).bind(this))
-        
+        this.servers[server_name].connection.submitJob(func_name, 'abc', payload);
+    }).bind(this));
+
 }
 
+Gearman.prototype.end = function(){
+    for(var i=this.server_names.length-1; i>=0; i--){
+        this.removeServer(this.server_names[i]);
+    }
+}
 
 module.exports = Gearman;
 

@@ -102,8 +102,11 @@ GearmanConnection.packet_types_reversed = {
 GearmanConnection.param_count = {
     ERROR: ["string","string"],
     JOB_ASSIGN: ["string","string", "buffer"],
-    JOB_CREATED: ["string"],
-    WORK_COMPLETE: ["string", "buffer"]
+    JOB_ASSIGN: ["string","string", "string", "buffer"],
+    JOB_CREATED: ["string", "string"],
+    WORK_COMPLETE: ["string", "buffer"],
+    WORK_EXCEPTION: ["string", "string"],
+    WORK_FAIL: ["string"]
 }
 
 GearmanConnection.prototype.sendCommand = function(command){
@@ -231,20 +234,20 @@ GearmanConnection.prototype.runCommand = function(command){
     if(command.pipe){
         this.queue_pipe.push(command);
     }
-    
-    console.log("-->");
-    console.log(command);
-    
-    console.log("-----");
-    console.log(buf)
-    console.log("-----");
-    
+
+    if(this.debug){    
+        console.log("--> outgoing");
+        console.log(command);
+    }
+
     // saada teele
     process.nextTick((function(){
         this.socket.write(buf, (function(){
             // kui saadetud, käivita järgmine
             // TODO: selle võiks ehk välja tõsta, käsud saab korraga saata
-            console.log("--> data sent");
+            if(this.debug){
+                console.log("--> data sent");
+            }
             this.processQueue();
         }).bind(this));    
     }).bind(this));
@@ -305,7 +308,7 @@ GearmanConnection.prototype.close = function(){
 
 
 GearmanConnection.prototype.receive = function(chunk){
-    var buf = new Buffer(chunk.length + (this.remainder && this.remainder.length || 0)),
+    var buf = new Buffer((chunk && chunk.length || 0) + (this.remainder && this.remainder.length || 0)),
         pos = 0, res = [00, 82, 69, 83], type = new Buffer(4), paramlen = new Buffer(4),
         action, piped, params;
     
@@ -313,7 +316,7 @@ GearmanConnection.prototype.receive = function(chunk){
         this.remainder.copy(buf, 0, 0);
         pos = this.remainder.length;
     }
-    chunk.copy(buf, pos, 0);
+    chunk && chunk.copy(buf, pos, 0);
     
     // vastus peab olema vähemalt 12 baiti pikk
     if(buf.length<12){
@@ -348,12 +351,21 @@ GearmanConnection.prototype.receive = function(chunk){
         piped = this.queue_pipe.shift();
     }
     
-    params = new Buffer(buf.length - 12);
-    buf.copy(params, 0, 12);
+    params = new Buffer(paramlen);
+    buf.copy(params, 0, 12, 12+paramlen);
     
-    console.log("-->");
-    console.log(type, params);
-    console.log("str: "+params.toString("ascii").replace(/\u0000/g,"-0-").replace(/\n/g,"-N-").replace(/\r/g,"-R-"));
+    if(buf.length > 12+paramlen){
+        this.remainder = new Buffer(buf.length - (12+paramlen));
+        buf.copy(this.remainder, 0, 12+paramlen);
+        process.nextTick(this.receive.bind(this))
+    }else{
+        this.remainder = false;
+    }
+    
+    if(this.debug){
+        console.log("<-- incoming");
+        console.log(type, params);
+    }
     
     this.handleCommand(type, params, piped);
 }
@@ -399,31 +411,34 @@ GearmanConnection.prototype.handleCommand = function(type, params, command){
 }
 
 GearmanConnection.prototype.jobComplete = function(handle, payload){
-    console.log(arguments);
     this.sendCommand({
         type: "WORK_COMPLETE",
         params: [handle, payload]
     });
+    
+    this.sendCommand("GRAB_JOB");
+    
 }
 
 GearmanConnection.prototype.jobFail = function(handle){
-    console.log(arguments);
     this.sendCommand({
         type: "WORK_FAIL",
         params: [handle]
     });
+    
+    this.sendCommand("GRAB_JOB");
 }
 
 GearmanConnection.prototype.jobError = function(handle, message){
-    console.log(arguments);
     this.sendCommand({
         type: "WORK_EXCEPTION",
         params: [handle, message]
     });
+    
+    this.sendCommand("GRAB_JOB");
 }
 
 GearmanConnection.prototype.jobData = function(handle, data){
-    console.log(arguments);
     this.sendCommand({
         type: "WORK_DATA",
         params: [handle, data]
@@ -452,12 +467,21 @@ GearmanConnection.prototype.handler_JOB_ASSIGN_UNIQ = function(command, handle, 
 
 
 GearmanConnection.prototype.handler_JOB_CREATED = function(command, handle){
-    console.log(handle);
+    this.emit("created", handle);
 }
 
 GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, response){
-    console.log(arguments);
+    this.emit("complete", handle, response);
 }
+
+GearmanConnection.prototype.handler_WORK_EXCEPTION = function(command, handle, error){
+    this.emit("exception", handle, error);
+}
+
+GearmanConnection.prototype.handler_WORK_FAIL = function(command, handle){
+    this.emit("fail", handle);
+}
+
 
 GearmanConnection.prototype.submitJob = function(func_name, uid, data){
     this.sendCommand({
