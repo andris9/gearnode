@@ -133,6 +133,8 @@ GearmanConnection.prototype.addFunction = function(func_name){
         params: [func_name]
     });
     
+    console.log("Registered for '"+func_name+"'");
+    
     this.sendCommand({
         type: "GRAB_JOB",
         pipe: true
@@ -144,6 +146,8 @@ GearmanConnection.prototype.removeFunction = function(func_name){
         type: "CANT_DO",
         params: [func_name]
     });
+    
+    console.log("Unregistered for '"+func_name+"'");
 }
 
 GearmanConnection.prototype.removeAllFunction = function(){
@@ -411,12 +415,17 @@ GearmanConnection.prototype.handleCommand = function(type, params, command){
 }
 
 GearmanConnection.prototype.jobComplete = function(handle, payload){
+    setTimeout((function(){
+    
     this.sendCommand({
         type: "WORK_COMPLETE",
         params: [handle, payload]
     });
     
-    this.sendCommand("GRAB_JOB");
+    this.sendCommand("GRAB_JOB");    
+        
+    }).bind(this), 100);
+    
     
 }
 

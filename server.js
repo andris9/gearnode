@@ -13,3 +13,8 @@ worker.addFunction("reverse", function(payload){
     var str = payload.toString("utf-8");
     return str.reverse();
 });
+
+worker.addFunction("reverse2", function(payload){
+    var str = payload.toString("utf-8");
+    return str.reverse();
+});
