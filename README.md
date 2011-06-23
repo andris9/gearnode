@@ -21,9 +21,9 @@
     client = new Gearman();
     client.addServer("localhost", 7003);
 
-    client.submitJob("upper", "hello world!");
+    var job = client.submitJob("upper", "hello world!", {encoding:'utf-8'});
 
-    client.on("complete", function(handle, response){
-        console.log(response.toString("utf-8"));
+    job.on("complete", function(handle, response){
+        console.log(response); // HELLO WORLD!
         client.end();
     });
