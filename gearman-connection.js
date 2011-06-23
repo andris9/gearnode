@@ -14,6 +14,8 @@ function GearmanConnection(server, port){
     this.command_queue = [];
     this.queue_pipe = [];
     
+    this.queued_jobs = {};
+    
     this.connected = false;
     this.processing = false;
     this.failed = false;
@@ -127,48 +129,22 @@ GearmanConnection.prototype.sendCommand = function(command){
     this.processQueue();
 }
 
-GearmanConnection.prototype.addFunction = function(func_name){
-    this.sendCommand({
-        type: "CAN_DO",
-        params: [func_name]
-    });
-    
-    console.log("Registered for '"+func_name+"'");
-    
-    this.sendCommand({
-        type: "GRAB_JOB",
-        pipe: true
-    });
-}
-
-GearmanConnection.prototype.removeFunction = function(func_name){
-    this.sendCommand({
-        type: "CANT_DO",
-        params: [func_name]
-    });
-    
-    console.log("Unregistered for '"+func_name+"'");
-}
-
-GearmanConnection.prototype.removeAllFunction = function(){
-    this.sendCommand("RESET_ABILITIES");
-}
 
 GearmanConnection.prototype.processQueue = function(){
     var command;
     
-    // kui ühendust veel pole, telli selle avamine
+    // if no connection yet, open one
     if(!this.connected){
         if(this.retries<5){
             this.connect();
         }else{
-            console.log("failed")
+            console.log("failed");
             this.failed = true;
         }
         return false;
     }
     
-    // lae järjekorrast FIFO käsklus
+    // get commands as FIFO
     if(this.command_queue.length){
         this.processing = true;
         command = this.command_queue.shift();
@@ -179,40 +155,44 @@ GearmanConnection.prototype.processQueue = function(){
 }
 
 GearmanConnection.prototype.runCommand = function(command){
-    var req  = [00, 82, 69, 81], //\0REQ
-        type = tools.nrpad(GearmanConnection.packet_types[command.type], 4),
-        param, params = [], paramlen = 0, size, buf, pos;
+    if(!command || !command.type || !GearmanConnection.packet_types[command.type]){
+        return;
+    }
+    this.send(command);
+}
+
+GearmanConnection.prototype.send = function(command){
+    var magicREQ  = new Buffer([00, 82, 69, 81]), //\0REQ
+        type = tools.packInt(GearmanConnection.packet_types[command.type], 4),
+        param, params = [], paramlen = 0, size = 0, buf, pos;
     
     // teeme parameetritest ükshaaval Buffer objektid ning loeme pikkused kokku
     for(var i=0; i<command.params.length; i++){
         if(command.params[i] instanceof Buffer){
             params.push(command.params[i]);
-            paramlen += command.params[i].length;
+            size += command.params[i].length;
         }else{
             param = new Buffer(String(command.params[i] || ""),"utf-8");
             params.push(param);
-            paramlen += param.length;
+            size += param.length;
         }
     }
     
-    // lisame pikkusele parameetrite vahele minevate \0 arvu
-    paramlen += command.params.length-1;
-    paramlen = paramlen>0?paramlen:0;
+    // add the length for separator \0 bytes
+    if(params.length>1){
+        size += params.length - 1;
+    }
     
-    // pikkus koosneb \0REQ 4B + tyyp 4B + parameetrite pikkus 4B + parameetrid
-    size = 4 + 4 + 4 + paramlen;
+    paramlen = tools.packInt(size, 4);
     
-    // konverteerime 4B Buffer objektiks
-    paramlen = tools.nrpad(paramlen, 4);
+    // add the length for \0REQ 4B + type 4B + paramsize 4B
+    size += 12;
     
     // loome objekti mis saata serverile
     buf = new Buffer(size);
     
     // kopeerime Magick baidid
-    // TODO: see peaks olema Buffer mitte array
-    for(var i=0; i<req.length; i++){
-        buf[i] = req[i];
-    }
+    magicREQ.copy(buf, 0, 0, 4);
     
     // kopeerime käsu koodi
     type.copy(buf, 4, 0);
@@ -256,6 +236,8 @@ GearmanConnection.prototype.runCommand = function(command){
         }).bind(this));    
     }).bind(this));
 }
+
+// CONNECTION COMMANDS
 
 GearmanConnection.prototype.connect = function(){
     
@@ -310,108 +292,33 @@ GearmanConnection.prototype.close = function(){
     }
 }
 
+// WORKER COMMANDS
 
-GearmanConnection.prototype.receive = function(chunk){
-    var buf = new Buffer((chunk && chunk.length || 0) + (this.remainder && this.remainder.length || 0)),
-        pos = 0, res = [00, 82, 69, 83], type = new Buffer(4), paramlen = new Buffer(4),
-        action, piped, params;
+GearmanConnection.prototype.addFunction = function(func_name){
+    this.sendCommand({
+        type: "CAN_DO",
+        params: [func_name]
+    });
     
-    if(this.remainder){
-        this.remainder.copy(buf, 0, 0);
-        pos = this.remainder.length;
-    }
-    chunk && chunk.copy(buf, pos, 0);
+    console.log("Registered for '"+func_name+"'");
     
-    // vastus peab olema vähemalt 12 baiti pikk
-    if(buf.length<12){
-        this.remainder = buf;
-        return;
-    }
-    
-    // kontrolli magickut
-    for(var i=0; i<4; i++){
-        if(res[i] != buf[i]){
-            console.log("WARNING: out of sync!");
-            break;
-        }
-    }
-    
-    // loe töö tüüp
-    buf.copy(type, 0, 4, 8);
-    type = tools.nrunpad(type);
-    type = GearmanConnection.packet_types_reversed[String(type)];
-    
-    // loe parameetrite pikkus
-    buf.copy(paramlen, 0, 8, 12);
-    paramlen = tools.nrunpad(paramlen);
-    
-    // not enough info
-    if(buf.length<12 + paramlen){
-        this.remainder = buf;
-        return;
-    }
-    
-    if(type && type!="NOOP"){
-        piped = this.queue_pipe.shift();
-    }
-    
-    params = new Buffer(paramlen);
-    buf.copy(params, 0, 12, 12+paramlen);
-    
-    if(buf.length > 12+paramlen){
-        this.remainder = new Buffer(buf.length - (12+paramlen));
-        buf.copy(this.remainder, 0, 12+paramlen);
-        process.nextTick(this.receive.bind(this))
-    }else{
-        this.remainder = false;
-    }
-    
-    if(this.debug){
-        console.log("<-- incoming");
-        console.log(type, params);
-    }
-    
-    this.handleCommand(type, params, piped);
+    this.sendCommand({
+        type: "GRAB_JOB",
+        pipe: true
+    });
 }
 
-GearmanConnection.prototype.handleCommand = function(type, params, command){
-    var data = [], hint, positions = [], curpos=0, curparam;
+GearmanConnection.prototype.removeFunction = function(func_name){
+    this.sendCommand({
+        type: "CANT_DO",
+        params: [func_name]
+    });
     
-    if(hint = GearmanConnection.param_count[type]){
-        if(hint.length){
-            
-            for(var i=0, len = params.length; i<len; i++){
-                if(params[i]===0){
-                    positions.push(i);
-                    if(positions.length >= hint.length-1){
-                        break;
-                    }
-                }
-            }
-            
-            for(var i=0, len = positions.length; i<len; i++){
-                curparam = new Buffer(positions[i] - curpos);
-                params.copy(curparam, 0, curpos, positions[i]);
-                curpos = positions[i]+1;
-                if(hint[i]=="string"){
-                    data.push(curparam.toString("utf-8"));
-                }else{
-                    data.push(curparam);
-                }
-            }
-            curparam = new Buffer(params.length - curpos);
-            params.copy(curparam, 0, curpos);
-            if(hint[hint.length-1] == "string"){
-                data.push(curparam.toString("utf-8"));
-            }else{
-                data.push(curparam);
-            }
-        }
-    }
-    
-    if(this["handler_"+type]){
-        this["handler_"+type].apply(this,[command].concat(data));
-    }
+    console.log("Unregistered for '"+func_name+"'");
+}
+
+GearmanConnection.prototype.removeAllFunction = function(){
+    this.sendCommand("RESET_ABILITIES");
 }
 
 GearmanConnection.prototype.jobComplete = function(handle, payload){
@@ -454,15 +361,143 @@ GearmanConnection.prototype.jobData = function(handle, data){
     });
 }
 
+// CLIENT COMMANDS
+
+GearmanConnection.prototype.submitJob = function(func_name, payload, options){
+    this.sendCommand({
+        type: "SUBMIT_JOB",
+        params: [func_name, options.uid || '', payload],
+        options: options,
+        pipe: true
+    });
+}
+
+// RECEIVER
+
+GearmanConnection.prototype.receive = function(chunk){
+    var buf = new Buffer((chunk && chunk.length || 0) + (this.remainder && this.remainder.length || 0)),
+        magicRES = new Buffer([00, 82, 69, 83]), type = new Buffer(4), paramlen = new Buffer(4),
+        action, piped, params;
+    
+    // nothing to do here
+    if(!buf.length){
+        return;
+    }
+    
+    // if theres a remainder value, tie it together with the incoming chunk
+    if(this.remainder){
+        this.remainder.copy(buf, 0, 0);
+        chunk && chunk.copy(buf, this.remainder.length, 0);
+    }else{
+        chunk && chunk.copy(buf, 0, 0);
+    }
+    
+    // response needs to be at least 12 bytes
+    // otherwise keep the current chunk as remainder
+    if(buf.length<12){
+        this.remainder = buf;
+        return;
+    }
+    
+    // check if the magic bytes are set (byte 0-3)
+    // TODO: here should be some kind of mechanism to recover sync
+    for(var i=0; i<4; i++){
+        if(magicRES[i] != buf[i]){
+            console.log("WARNING: out of sync!");
+            break;
+        }
+    }
+    
+    // read the type of the command (bytes 4-7)
+    buf.copy(type, 0, 4, 8);
+    type = tools.unpackInt(type);
+    type = GearmanConnection.packet_types_reversed[String(type)];
+    
+    // loe parameetrite pikkus
+    buf.copy(paramlen, 0, 8, 12);
+    paramlen = tools.unpackInt(paramlen);
+    
+    // not enough info
+    if(buf.length<12 + paramlen){
+        this.remainder = buf;
+        return;
+    }
+    
+    if(type && type!="NOOP"){
+        piped = this.queue_pipe.shift();
+    }
+    
+    params = new Buffer(paramlen);
+    buf.copy(params, 0, 12, 12+paramlen);
+    
+    if(buf.length > 12+paramlen){
+        this.remainder = new Buffer(buf.length - (12+paramlen));
+        buf.copy(this.remainder, 0, 12+paramlen);
+        process.nextTick(this.receive.bind(this))
+    }else{
+        this.remainder = false;
+    }
+    
+    if(this.debug){
+        console.log("<-- incoming");
+        console.log(type, params);
+    }
+    
+    this.handleCommand(type, params, piped);
+}
+
+GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command){
+    var params = [], hint, positions = [], curpos=0, curparam;
+    
+    // check if there are expected params and if so, break 
+    // the buffer into individual pieces
+    if((hint = GearmanConnection.param_count[type]) && hint.length){
+        
+        // find \0 positions for individual params
+        for(var i=0, len = paramsBuffer.length; i<len; i++){
+            if(paramsBuffer[i]===0){
+                positions.push(i);
+                if(positions.length >= hint.length-1){
+                    break;
+                }
+            }
+        }
+        
+        for(var i=0, len = positions.length + 1; i<len; i++){
+            curparam = new Buffer(positions[i] || paramsBuffer.length - curpos);
+            // there is no positions[i] for the last i, undefined is used instead
+            paramsBuffer.copy(curparam, 0, curpos, positions[i]);
+            curpos = positions[i]+1;
+            if(hint[i]=="string"){
+                params.push(curparam.toString("utf-8"));
+            }else{
+                params.push(curparam);
+            }
+        }
+    }
+    
+    // run the command handler (if there is one)
+    if(this["handler_"+type]){
+        this["handler_"+type].apply(this,[command].concat(params));
+    }
+}
+
+// INCOMING COMMANDS
+
+// UNIVERSAL
+
 GearmanConnection.prototype.handler_ERROR = function(command, code, message){
     this.emit("error", new Error(message));
 }
+
+// WORKER
 
 GearmanConnection.prototype.handler_NO_JOB = function(command){
     this.sendCommand("PRE_SLEEP");
 }
 
 GearmanConnection.prototype.handler_NOOP = function(command){
+    // probably some jobs available
     this.sendCommand("GRAB_JOB");
 }
 
@@ -474,28 +509,38 @@ GearmanConnection.prototype.handler_JOB_ASSIGN_UNIQ = function(command, handle, 
     this.emit("job", handle, func_name, payload, uid);
 }
 
+// CLIENT
 
 GearmanConnection.prototype.handler_JOB_CREATED = function(command, handle){
+    this.queued_jobs[handle] = command;
     this.emit("created", handle);
 }
 
 GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, response){
+    var original = this.queued_jobs[handle],
+        encoding = original && original.options && original.options.encoding || "buffer";
+    delete this.queued_jobs[handle];
+    
+    switch(encoding.toLowerCase()){
+        case "utf-8":
+        case "ascii":
+        case "base64":
+            response = response && response.toString(encoding) || "";
+            break;
+        case "buffer":
+        default:
+            // keep buffer
+    }
+    
     this.emit("complete", handle, response);
 }
 
 GearmanConnection.prototype.handler_WORK_EXCEPTION = function(command, handle, error){
+    delete this.queued_jobs[handle];
     this.emit("exception", handle, error);
 }
 
 GearmanConnection.prototype.handler_WORK_FAIL = function(command, handle){
+    delete this.queued_jobs[handle];
     this.emit("fail", handle);
-}
-
-
-GearmanConnection.prototype.submitJob = function(func_name, uid, data){
-    this.sendCommand({
-        type: "SUBMIT_JOB",
-        params: [func_name, uid, data],
-        pipe: true
-    });
 }

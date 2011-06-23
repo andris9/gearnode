@@ -3,14 +3,14 @@ var Gearman = require("./gearman");
 client = new Gearman();
 client.addServer("localhost", 7003);
 
-client.submitJob("reverse", "Hello world!");    
+client.submitJob("reverse", "Hello world!", {encoding:"base64"});    
 
 client.on("created", function(handle){
     console.log("Job created as '"+handle+"'");
 });
 
 client.on("complete", function(handle, response){
-    console.log("Job '"+handle+"' ready: '"+(response && response.toString("utf-8") || "")+"'");
+    console.log("Job '"+handle+"' ready: '"+response+"'");
     client.end();
 });
 

@@ -158,13 +158,15 @@ Gearman.prototype.removeFunction = function(name){
     }
 }
 
-Gearman.prototype.submitJob = function(func_name, payload){
+Gearman.prototype.submitJob = function(func_name, payload, options){
     if(!func_name){
         return false;
     }
 
+    options = options || {};
+
     this.server_names.forEach((function(server_name){
-        this.servers[server_name].connection.submitJob(func_name, 'abc', payload);
+        this.servers[server_name].connection.submitJob(func_name, payload, options);
     }).bind(this));
 
 }

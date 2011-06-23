@@ -1,4 +1,5 @@
-function nrpad(nr, bytelen){
+
+function packInt(nr, bytelen){
     bytelen = Number(bytelen) || 4;
     bytes = Buffer(bytelen);
     for(var i=bytelen-1; i>=0; i--){
@@ -8,7 +9,7 @@ function nrpad(nr, bytelen){
     return bytes;
 }
 
-function nrunpad(bytes){
+function unpackInt(bytes){
     var nr = 0;
     for(var i=bytes.length-1; i >= 0; i--){
         nr += (Math.pow(256, bytes.length - i - 1)) * bytes[i];
@@ -16,5 +17,5 @@ function nrunpad(bytes){
     return nr;
 }
 
-module.exports.nrpad = nrpad;
-module.exports.nrunpad = nrunpad;
+module.exports.packInt = packInt;
+module.exports.unpackInt = unpackInt;
