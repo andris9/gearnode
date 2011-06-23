@@ -22,6 +22,8 @@ function GearmanConnection(server, port){
     
     this.retries = 0;
     this.remainder = false;
+    
+    this.debug = false;
 }
 utillib.inherits(GearmanConnection, EventEmitter);
 
@@ -222,6 +224,7 @@ GearmanConnection.prototype.send = function(command){
     if(this.debug){    
         console.log("--> outgoing");
         console.log(command);
+        console.log(buf);
     }
 
     // saada teele
@@ -322,18 +325,12 @@ GearmanConnection.prototype.removeAllFunction = function(){
 }
 
 GearmanConnection.prototype.jobComplete = function(handle, payload){
-    setTimeout((function(){
-    
     this.sendCommand({
         type: "WORK_COMPLETE",
         params: [handle, payload]
     });
     
     this.sendCommand("GRAB_JOB");    
-        
-    }).bind(this), 100);
-    
-    
 }
 
 GearmanConnection.prototype.jobFail = function(handle){
@@ -364,8 +361,24 @@ GearmanConnection.prototype.jobData = function(handle, data){
 // CLIENT COMMANDS
 
 GearmanConnection.prototype.submitJob = function(func_name, payload, options){
+    
+    var command = ["SUBMIT_JOB"];
+    
+    switch(options.priority){
+        case "low":
+            command.push("LOW");
+            break;
+        case "high":
+            command.push("HIGH");
+            break;
+    }
+    
+    if(options.background){
+        command.push("BG");
+    }
+    
     this.sendCommand({
-        type: "SUBMIT_JOB",
+        type: command.join("_"),
         params: [func_name, options.uid || '', payload],
         options: options,
         pipe: true
@@ -415,6 +428,7 @@ GearmanConnection.prototype.receive = function(chunk){
     
     // loe parameetrite pikkus
     buf.copy(paramlen, 0, 8, 12);
+    
     paramlen = tools.unpackInt(paramlen);
     
     // not enough info
@@ -447,6 +461,7 @@ GearmanConnection.prototype.receive = function(chunk){
 }
 
 GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command){
+    
     var params = [], hint, positions = [], curpos=0, curparam;
     
     // check if there are expected params and if so, break 
@@ -462,9 +477,9 @@ GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command
                 }
             }
         }
-        
+
         for(var i=0, len = positions.length + 1; i<len; i++){
-            curparam = new Buffer(positions[i] || paramsBuffer.length - curpos);
+            curparam = new Buffer((positions[i] || paramsBuffer.length) - curpos);
             // there is no positions[i] for the last i, undefined is used instead
             paramsBuffer.copy(curparam, 0, curpos, positions[i]);
             curpos = positions[i]+1;
@@ -512,13 +527,14 @@ GearmanConnection.prototype.handler_JOB_ASSIGN_UNIQ = function(command, handle, 
 // CLIENT
 
 GearmanConnection.prototype.handler_JOB_CREATED = function(command, handle){
+    var original = command || {};
     this.queued_jobs[handle] = command;
-    this.emit("created", handle);
+    this.emit("created", handle, original.options);
 }
 
 GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, response){
-    var original = this.queued_jobs[handle],
-        encoding = original && original.options && original.options.encoding || "buffer";
+    var original = this.queued_jobs[handle] || {},
+        encoding = original.options && original.options.encoding || "buffer";
     delete this.queued_jobs[handle];
     
     switch(encoding.toLowerCase()){
@@ -531,16 +547,18 @@ GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, re
         default:
             // keep buffer
     }
-    
-    this.emit("complete", handle, response);
+
+    this.emit("complete", handle, response, original.options);
 }
 
 GearmanConnection.prototype.handler_WORK_EXCEPTION = function(command, handle, error){
+    var original = this.queued_jobs[handle] || {};
     delete this.queued_jobs[handle];
-    this.emit("exception", handle, error);
+    this.emit("exception", handle, error, original.options);
 }
 
 GearmanConnection.prototype.handler_WORK_FAIL = function(command, handle){
+    var original = this.queued_jobs[handle] || {};
     delete this.queued_jobs[handle];
-    this.emit("fail", handle);
+    this.emit("fail", handle, original.options);
 }

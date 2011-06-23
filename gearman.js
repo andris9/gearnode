@@ -37,20 +37,28 @@ Gearman.prototype.addServer = function(server_name, server_port){
     
     this.servers[server_name].connection.on("job", this.runJob.bind(this, server_name));
     
-    this.servers[server_name].connection.on("created", (function(handle){
-        this.emit("created", handle);
+    this.servers[server_name].connection.on("created", (function(handle, options){
+        if(options && options.job){
+            options.job.emit("created", handle);
+        }
     }).bind(this));
     
-    this.servers[server_name].connection.on("complete", (function(handle, response){
-        this.emit("complete", handle, response);
+    this.servers[server_name].connection.on("complete", (function(handle, response, options){
+        if(options && options.job){
+            options.job.emit("complete", response);
+        }
     }).bind(this));
     
-    this.servers[server_name].connection.on("exception", (function(handle, error){
-        this.emit("exception", handle, error);
+    this.servers[server_name].connection.on("exception", (function(handle, error, options){
+        if(options && options.job){
+            options.job.emit("exception", error);
+        }
     }).bind(this));
     
-    this.servers[server_name].connection.on("fail", (function(handle){
-        this.emit("fail", handle);
+    this.servers[server_name].connection.on("fail", (function(handle, options){
+        if(options && options.job){
+            options.job.emit("fail");
+        }
     }).bind(this));
     
     this.update(server_name);
@@ -59,7 +67,13 @@ Gearman.prototype.addServer = function(server_name, server_port){
 Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
     uid = uid || null;
     if(this.functions[func_name]){
-        this.servers[server_name].connection.jobComplete(handle, this.functions[func_name](payload));
+        this.functions[func_name](payload, (function(err, response){
+            if(err){
+                this.servers[server_name].connection.jobError(handle, err.message || err);
+                return;
+            }
+            this.servers[server_name].connection.jobComplete(handle, response);
+        }).bind(this));
     }else{
         this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
     }
@@ -158,25 +172,32 @@ Gearman.prototype.removeFunction = function(name){
     }
 }
 
-Gearman.prototype.submitJob = function(func_name, payload, options){
-    if(!func_name){
-        return false;
-    }
-
-    options = options || {};
-
-    this.server_names.forEach((function(server_name){
-        this.servers[server_name].connection.submitJob(func_name, payload, options);
-    }).bind(this));
-
-}
-
 Gearman.prototype.end = function(){
     for(var i=this.server_names.length-1; i>=0; i--){
         this.removeServer(this.server_names[i]);
     }
 }
 
+Gearman.prototype.submitJob = function(func_name, payload, options){
+    if(!func_name){
+        return false;
+    }
+
+    var job = new EventEmitter();
+
+    options = options || {};
+    options.job = job;
+
+    if(!this.server_names.length){
+        return;
+    }
+    
+    this.servers[this.server_names[0]].connection.submitJob(func_name, payload, options);
+    
+    return job;    
+}
+
 module.exports = Gearman;
+
 
 
