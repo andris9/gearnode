@@ -168,7 +168,14 @@ Gearman.prototype.unregister = function(func_name, server_name){
 
 Gearman.prototype.getExceptions = function(server_name, callback){
     var pos;
-    if(this.servers[server_name]){
+    
+    if(!callback && typeof server_name =="function"){
+        callback = server_name;
+        server_name = null;
+    }
+    
+    if(server_name){
+        if(this.servers[server_name]){
 
             this.servers[server_name].connection.getExceptions((function(err, success){
                 if(callback){
@@ -180,7 +187,7 @@ Gearman.prototype.getExceptions = function(server_name, callback){
                     console.log("Exceptions are followed from "+server_name);
                 }
             }).bind(this));
-
+        }
     }else{
         this.server_names.forEach((function(server_name){
             if(server_name){
