@@ -14,7 +14,7 @@ job.on("created", function(handle){
 });
 
 job.on("complete", function(response){
-    console.log("Job ready: '"+response+"' ("+job.handle+")");
+    console.log("Job ready: '"+response+"'");
     client.end();
 });
 
