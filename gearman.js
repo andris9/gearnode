@@ -77,26 +77,28 @@ Gearman.prototype.addServer = function(server_name, server_port){
 }
 
 Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
+    var job = new EventEmitter();
     uid = uid || null;
     if(this.functions[func_name]){
-        this.functions[func_name](payload, (function(err, response, type){
-            if(err){
-                this.servers[server_name].connection.jobError(handle, err.message || err);
-                return;
-            }
-            switch(type){
-                case "warning":
-                    this.servers[server_name].connection.jobWarning(handle, response);
-                    break;
-                case "data":
-                    this.servers[server_name].connection.jobData(handle, response);
-                    break;
-                case "normal":
-                default:
-                    this.servers[server_name].connection.jobComplete(handle, response);
-            }
-            
+        
+        job.on("complete", (function(response){
+            this.servers[server_name].connection.jobComplete(handle, response);
         }).bind(this));
+        
+        job.on("warning", (function(warning){
+            this.servers[server_name].connection.jobWarning(handle, warning);
+        }).bind(this));
+        
+        job.on("data", (function(data){
+            this.servers[server_name].connection.jobData(handle, data);
+        }).bind(this));
+        
+        job.on("error", (function(error){
+            this.servers[server_name].connection.jobError(handle, error);
+        }).bind(this));
+        
+        this.functions[func_name](payload, job);
+        
     }else{
         this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
     }

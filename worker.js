@@ -11,24 +11,25 @@ worker= new Gearman();
 worker.addServer("localhost", 7003);
 worker.setWorkerId("testkast");
 
-worker.addFunction("reverse", function(payload, callback){
+worker.addFunction("reverse", function(payload, job){
     var str = payload.toString("utf-8"),
         reversed = str.reverse();
     
-    if(callback){
+    
+    
+    setTimeout(function(){
+        job.emit("data", "data part");
+        
         setTimeout(function(){
-            callback(null, "andmepakett", "data");
+            job.emit("warning", "something strange happened!");
+            
             setTimeout(function(){
-                callback(null, "probla tekkis!", "warning");
-                setTimeout(function(){
-                    callback(null, reversed);
-                },500);
+                
+                job.emit("complete", reversed);
+                
             },500);
         },500);
-        
-    }else{
-        return str.reverse(reversed);
-    }
+    },500);
 });
 
 worker.addFunction("reverse2", function(payload){

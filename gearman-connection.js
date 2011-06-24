@@ -308,7 +308,7 @@ GearmanConnection.prototype.addFunction = function(func_name){
     console.log("Registered for '"+func_name+"'");
     
     this.sendCommand({
-        type: "GRAB_JOB_UNIQ",
+        type: "GRAB_JOB",
         pipe: true
     });
 }
@@ -332,7 +332,7 @@ GearmanConnection.prototype.jobComplete = function(handle, payload){
         params: [handle, payload]
     });
     
-    this.sendCommand("GRAB_JOB_UNIQ");    
+    this.sendCommand("GRAB_JOB");    
 }
 
 GearmanConnection.prototype.jobFail = function(handle){
@@ -341,7 +341,7 @@ GearmanConnection.prototype.jobFail = function(handle){
         params: [handle]
     });
     
-    this.sendCommand("GRAB_JOB_UNIQ");
+    this.sendCommand("GRAB_JOB");
 }
 
 GearmanConnection.prototype.jobError = function(handle, message){
@@ -543,7 +543,7 @@ GearmanConnection.prototype.handler_NO_JOB = function(command){
 
 GearmanConnection.prototype.handler_NOOP = function(command){
     // probably some jobs available
-    this.sendCommand("GRAB_JOB_UNIQ");
+    this.sendCommand("GRAB_JOB");
 }
 
 GearmanConnection.prototype.handler_JOB_ASSIGN = function(command, handle, func_name, payload){
