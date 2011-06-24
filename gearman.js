@@ -184,7 +184,7 @@ Gearman.prototype.getExceptions = function(server_name, callback){
     }else{
         this.server_names.forEach((function(server_name){
             if(server_name){
-                this.getExceptions(server_name);
+                this.getExceptions(server_name, callback);
             }
         }).bind(this))
     }
