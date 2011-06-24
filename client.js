@@ -3,7 +3,9 @@ var Gearman = require("./gearman");
 client = new Gearman();
 client.addServer("localhost", 7003);
 
-client.getExceptions();
+client.getExceptions(function(err, success){
+    console.log(arguments);
+});
 
 var job = client.submitJob("reverse", "Hello world!", {encoding:"base64"});    
 
