@@ -77,28 +77,10 @@ Gearman.prototype.addServer = function(server_name, server_port){
 }
 
 Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
-    var job = new EventEmitter();
     uid = uid || null;
     if(this.functions[func_name]){
-        
-        job.on("complete", (function(response){
-            this.servers[server_name].connection.jobComplete(handle, response);
-        }).bind(this));
-        
-        job.on("warning", (function(warning){
-            this.servers[server_name].connection.jobWarning(handle, warning);
-        }).bind(this));
-        
-        job.on("data", (function(data){
-            this.servers[server_name].connection.jobData(handle, data);
-        }).bind(this));
-        
-        job.on("error", (function(error){
-            this.servers[server_name].connection.jobError(handle, error);
-        }).bind(this));
-        
+        var job = new Gearman.GearmanWorker(handle, server_name, this);
         this.functions[func_name](payload, job);
-        
     }else{
         this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
     }
@@ -279,6 +261,28 @@ Gearman.GearmanJob = function(func_name, payload, options, server){
     server.connection.submitJob(func_name, payload, options);
 }
 utillib.inherits(Gearman.GearmanJob, EventEmitter);
+
+Gearman.GearmanWorker = function(handle, server_name, gm){
+    this.handle = handle;
+    this.server_name = server_name;
+    this.gm = gm;
+}
+
+Gearman.GearmanWorker.prototype.complete = function(response){
+    this.gm.servers[this.server_name].connection.jobComplete(this.handle, response);
+}
+
+Gearman.GearmanWorker.prototype.data = function(data){
+    this.gm.servers[this.server_name].connection.jobData(this.handle, data);
+}
+
+Gearman.GearmanWorker.prototype.warning = function(warning){
+    this.gm.servers[this.server_name].connection.jobWarning(this.handle, warning);
+}
+
+Gearman.GearmanWorker.prototype.error = function(error){
+    this.gm.servers[this.server_name].connection.jobError(this.handle, error);
+}
 
 module.exports = Gearman;
 

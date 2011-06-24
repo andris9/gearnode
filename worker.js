@@ -15,17 +15,15 @@ worker.addFunction("reverse", function(payload, job){
     var str = payload.toString("utf-8"),
         reversed = str.reverse();
     
-    
-    
     setTimeout(function(){
-        job.emit("data", "data part");
+        job.data("data part");
         
         setTimeout(function(){
-            job.emit("warning", "something strange happened!");
+            job.warning("something strange happened!");
             
             setTimeout(function(){
                 
-                job.emit("complete", reversed);
+                job.complete(reversed);
                 
             },500);
         },500);
