@@ -2,7 +2,7 @@
 
 **Gearnode** is a Node.JS client/worker module for Gearman.
 
-**NB!** this is usable beta, I'll have to do a lot of refactoring and optimization
+**NB!** this is usable beta but probably not yet ready for production, I'll have to do a lot of refactoring and optimization
 
 ## Usage
 
