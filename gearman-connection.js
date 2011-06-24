@@ -597,14 +597,14 @@ GearmanConnection.prototype.handler_WORK_DATA = function(command, handle, payloa
         case "utf-8":
         case "ascii":
         case "base64":
-            response = response && response.toString(encoding) || "";
+            payload = payload && payload.toString(encoding) || "";
             break;
         case "buffer":
         default:
             // keep buffer
     }
     
-    this.emit("data", handle, original.options);
+    this.emit("data", handle, payload, original.options);
 }
 
 GearmanConnection.prototype.handler_WORK_FAIL = function(command, handle){
