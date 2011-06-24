@@ -1,6 +1,6 @@
-# Gearman-Worker
+# Gearnode
 
-**Gearman-Worker** is a Node.JS client/worker module for Gearman.
+**Gearnode** is a Node.JS client/worker module for Gearman.
 
 ## Usage
 
