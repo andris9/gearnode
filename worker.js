@@ -9,6 +9,7 @@ String.prototype.reverse = function(){
 
 worker= new Gearman();
 worker.addServer("localhost", 7003);
+worker.setWorkerId("testkast");
 
 worker.addFunction("reverse", function(payload, callback){
     var str = payload.toString("utf-8"),

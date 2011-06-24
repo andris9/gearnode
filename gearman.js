@@ -197,6 +197,31 @@ Gearman.prototype.getExceptions = function(server_name, callback){
     }
 }
 
+Gearman.prototype.setWorkerId = function(server_name, id){
+    var pos;
+    
+    if(arguments.length<2){
+        id = server_name;
+        server_name = null;
+    }
+    if(!id){
+        return false;
+    }
+    
+    if(server_name){
+        if(this.servers[server_name]){
+
+            this.servers[server_name].connection.setWorkerId(id);
+        }
+    }else{
+        this.server_names.forEach((function(server_name){
+            if(server_name){
+                this.setWorkerId(server_name, id);
+            }
+        }).bind(this))
+    }
+}
+
 Gearman.prototype.addFunction = function(name, func){
     if(!name){
         return false;

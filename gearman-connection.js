@@ -106,7 +106,7 @@ GearmanConnection.packet_types_reversed = {
 GearmanConnection.param_count = {
     ERROR: ["string","string"],
     JOB_ASSIGN: ["string","string", "buffer"],
-    JOB_ASSIGN: ["string","string", "string", "buffer"],
+    JOB_ASSIGN_UNIQ: ["string","string", "string", "buffer"],
     JOB_CREATED: ["string", "string"],
     WORK_COMPLETE: ["string", "buffer"],
     WORK_EXCEPTION: ["string", "string"],
@@ -308,7 +308,7 @@ GearmanConnection.prototype.addFunction = function(func_name){
     console.log("Registered for '"+func_name+"'");
     
     this.sendCommand({
-        type: "GRAB_JOB",
+        type: "GRAB_JOB_UNIQ",
         pipe: true
     });
 }
@@ -332,7 +332,7 @@ GearmanConnection.prototype.jobComplete = function(handle, payload){
         params: [handle, payload]
     });
     
-    this.sendCommand("GRAB_JOB");    
+    this.sendCommand("GRAB_JOB_UNIQ");    
 }
 
 GearmanConnection.prototype.jobFail = function(handle){
@@ -341,7 +341,7 @@ GearmanConnection.prototype.jobFail = function(handle){
         params: [handle]
     });
     
-    this.sendCommand("GRAB_JOB");
+    this.sendCommand("GRAB_JOB_UNIQ");
 }
 
 GearmanConnection.prototype.jobError = function(handle, message){
@@ -402,6 +402,14 @@ GearmanConnection.prototype.getExceptions = function(callback){
         pipe: true
     });
 }
+
+GearmanConnection.prototype.setWorkerId = function(id){
+    this.sendCommand({
+        type: "SET_CLIENT_ID",
+        params: [id]
+    });
+}
+
 
 // RECEIVER
 
@@ -535,7 +543,7 @@ GearmanConnection.prototype.handler_NO_JOB = function(command){
 
 GearmanConnection.prototype.handler_NOOP = function(command){
     // probably some jobs available
-    this.sendCommand("GRAB_JOB");
+    this.sendCommand("GRAB_JOB_UNIQ");
 }
 
 GearmanConnection.prototype.handler_JOB_ASSIGN = function(command, handle, func_name, payload){
