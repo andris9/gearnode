@@ -67,6 +67,12 @@ Gearman.prototype.addServer = function(server_name, server_port){
         }
     }).bind(this));
     
+    this.servers[server_name].connection.on("status", (function(handle, numerator, denominator, options){
+        if(options && options.job){
+            options.job.emit("status", numerator, denominator);
+        }
+    }).bind(this));
+    
     this.servers[server_name].connection.on("fail", (function(handle, options){
         if(options && options.job){
             options.job.emit("fail");
@@ -282,6 +288,10 @@ Gearman.GearmanWorker.prototype.warning = function(warning){
 
 Gearman.GearmanWorker.prototype.error = function(error){
     this.gm.servers[this.server_name].connection.jobError(this.handle, error);
+}
+
+Gearman.GearmanWorker.prototype.setStatus = function(numerator, denominator){
+    this.gm.servers[this.server_name].connection.jobStatus(this.handle, numerator, denominator);
 }
 
 module.exports = Gearman;

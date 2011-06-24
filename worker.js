@@ -22,8 +22,13 @@ worker.addFunction("reverse", function(payload, job){
             job.warning("something strange happened!");
             
             setTimeout(function(){
+                job.setStatus(50, 100);
+            
+                setTimeout(function(){
+                    
+                    job.complete(reversed);
                 
-                job.complete(reversed);
+                },500);
                 
             },500);
         },500);

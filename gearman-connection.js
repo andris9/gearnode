@@ -23,7 +23,7 @@ function GearmanConnection(server, port){
     this.retries = 0;
     this.remainder = false;
     
-    this.debug = true;
+    this.debug = false;
 }
 utillib.inherits(GearmanConnection, EventEmitter);
 
@@ -112,7 +112,8 @@ GearmanConnection.param_count = {
     WORK_EXCEPTION: ["string", "string"],
     WORK_WARNING: ["string", "string"],
     WORK_DATA: ["string", "buffer"],
-    WORK_FAIL: ["string"]
+    WORK_FAIL: ["string"],
+    WORK_STATUS: ["string", "number", "number"],
 }
 
 GearmanConnection.prototype.sendCommand = function(command){
@@ -256,7 +257,9 @@ GearmanConnection.prototype.connect = function(){
     
     this.connecting = true;
 
-    console.log("connecting...");
+    if(this.debug){
+        console.log("connecting...");
+    }
     this.socket = netlib.createConnection(this.port, this.server);
         
     this.socket.on("connect", (function(){
@@ -264,7 +267,9 @@ GearmanConnection.prototype.connect = function(){
         this.connected = true;
         this.retries = 0;
     
-        console.log("connected!");        
+        if(this.debug){
+            console.log("connected!");
+        }        
         this.processQueue();
             
     }).bind(this));
@@ -305,7 +310,9 @@ GearmanConnection.prototype.addFunction = function(func_name){
         params: [func_name]
     });
     
-    console.log("Registered for '"+func_name+"'");
+    if(this.debug){
+        console.log("Registered for '"+func_name+"'");
+    }
     
     this.sendCommand({
         type: "GRAB_JOB",
@@ -319,7 +326,9 @@ GearmanConnection.prototype.removeFunction = function(func_name){
         params: [func_name]
     });
     
-    console.log("Unregistered for '"+func_name+"'");
+    if(this.debug){
+        console.log("Unregistered for '"+func_name+"'");
+    }
 }
 
 GearmanConnection.prototype.removeAllFunction = function(){
@@ -364,6 +373,13 @@ GearmanConnection.prototype.jobData = function(handle, data){
     this.sendCommand({
         type: "WORK_DATA",
         params: [handle, data]
+    });
+}
+
+GearmanConnection.prototype.jobStatus = function(handle, numerator, denominator){
+    this.sendCommand({
+        type: "WORK_STATUS",
+        params: [handle, tools.packInt(numerator), tools.packInt(denominator)]
     });
 }
 
@@ -511,6 +527,8 @@ GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command
             curpos = positions[i]+1;
             if(hint[i]=="string"){
                 params.push(curparam.toString("utf-8"));
+            }else if(hint[i]=="number"){
+                params.push(tools.unpackInt(curparam));
             }else{
                 params.push(curparam);
             }
@@ -619,4 +637,9 @@ GearmanConnection.prototype.handler_WORK_FAIL = function(command, handle){
     var original = this.queued_jobs[handle] || {};
     delete this.queued_jobs[handle];
     this.emit("fail", handle, original.options);
+}
+
+GearmanConnection.prototype.handler_WORK_STATUS = function(command, handle, numerator, denominator){
+    var original = this.queued_jobs[handle] || {};
+    this.emit("status", handle, numerator, denominator, original.options);
 }

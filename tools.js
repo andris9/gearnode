@@ -1,12 +1,17 @@
 
 function packInt(nr, bytelen){
-    bytelen = Number(bytelen) || 4;
-    bytes = Buffer(bytelen);
+    if(!bytelen){
+        bytelen = Math.floor(Math.log(nr) / Math.floor(255)) + 1;
+    }
+    
+    bytes = Buffer(Number(bytelen) || 4);
+    
     for(var i=bytelen-1; i>=0; i--){
         bytes[i] = nr & (255);
         nr = nr >> 8;
     }
-    return bytes;
+    
+    return new Buffer(bytes);
 }
 
 function unpackInt(bytes){

@@ -4,7 +4,7 @@ client = new Gearman();
 client.addServer("localhost", 7003);
 
 client.getExceptions(function(err, success){
-    console.log(arguments);
+    console.log(success && "Registered for exceptions" || "No exceptions");
 });
 
 var job = client.submitJob("reverse", "Hello world!", {encoding:"base64"});    
@@ -14,7 +14,7 @@ job.on("created", function(handle){
 });
 
 job.on("complete", function(response){
-    console.log("Job ready: '"+response+"'");
+    console.log("Job ready: '"+response+"' ("+job.handle+")");
     client.end();
 });
 
@@ -33,4 +33,8 @@ job.on("warning", function(message){
 
 job.on("data", function(message){
     console.log("Data '"+message+"'");
+});
+
+job.on("status", function(nu, de){
+    console.log("Status "+nu+" / "+de);
 });
