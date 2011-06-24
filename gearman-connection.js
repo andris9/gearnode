@@ -23,7 +23,7 @@ function GearmanConnection(server, port){
     this.retries = 0;
     this.remainder = false;
     
-    this.debug = false;
+    this.debug = true;
 }
 utillib.inherits(GearmanConnection, EventEmitter);
 
@@ -110,6 +110,8 @@ GearmanConnection.param_count = {
     JOB_CREATED: ["string", "string"],
     WORK_COMPLETE: ["string", "buffer"],
     WORK_EXCEPTION: ["string", "string"],
+    WORK_WARNING: ["string", "string"],
+    WORK_DATA: ["string", "buffer"],
     WORK_FAIL: ["string"]
 }
 
@@ -348,7 +350,14 @@ GearmanConnection.prototype.jobError = function(handle, message){
         params: [handle, message]
     });
     
-    this.sendCommand("GRAB_JOB");
+    this.jobFail(handle);
+}
+
+GearmanConnection.prototype.jobWarning = function(handle, data){
+    this.sendCommand({
+        type: "WORK_WARNING",
+        params: [handle, data]
+    });
 }
 
 GearmanConnection.prototype.jobData = function(handle, data){
@@ -381,6 +390,15 @@ GearmanConnection.prototype.submitJob = function(func_name, payload, options){
         type: command.join("_"),
         params: [func_name, options.uid || '', payload],
         options: options,
+        pipe: true
+    });
+}
+
+GearmanConnection.prototype.getExceptions = function(callback){
+    this.sendCommand({
+        type: "OPTION_REQ",
+        params: ["exceptions"],
+        callback: callback,
         pipe: true
     });
 }
@@ -502,6 +520,10 @@ GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command
 // UNIVERSAL
 
 GearmanConnection.prototype.handler_ERROR = function(command, code, message){
+    if(command && command.callback){
+        command.callback(new Error(message));
+        return;
+    }
     this.emit("error", new Error(message));
 }
 
@@ -525,6 +547,12 @@ GearmanConnection.prototype.handler_JOB_ASSIGN_UNIQ = function(command, handle, 
 }
 
 // CLIENT
+
+GearmanConnection.prototype.handler_OPTION_RES = function(command){
+    if(command && command.callback){
+        command.callback(null, true);
+    }
+}
 
 GearmanConnection.prototype.handler_JOB_CREATED = function(command, handle){
     var original = command || {};
@@ -553,8 +581,30 @@ GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, re
 
 GearmanConnection.prototype.handler_WORK_EXCEPTION = function(command, handle, error){
     var original = this.queued_jobs[handle] || {};
-    delete this.queued_jobs[handle];
     this.emit("exception", handle, error, original.options);
+}
+
+GearmanConnection.prototype.handler_WORK_WARNING = function(command, handle, error){
+    var original = this.queued_jobs[handle] || {};
+    this.emit("warning", handle, error, original.options);
+}
+
+GearmanConnection.prototype.handler_WORK_DATA = function(command, handle, payload){
+    var original = this.queued_jobs[handle] || {},
+        encoding = original.options && original.options.encoding || "buffer";
+    
+    switch(encoding.toLowerCase()){
+        case "utf-8":
+        case "ascii":
+        case "base64":
+            response = response && response.toString(encoding) || "";
+            break;
+        case "buffer":
+        default:
+            // keep buffer
+    }
+    
+    this.emit("data", handle, original.options);
 }
 
 GearmanConnection.prototype.handler_WORK_FAIL = function(command, handle){

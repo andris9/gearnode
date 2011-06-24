@@ -55,6 +55,18 @@ Gearman.prototype.addServer = function(server_name, server_port){
         }
     }).bind(this));
     
+    this.servers[server_name].connection.on("warning", (function(handle, error, options){
+        if(options && options.job){
+            options.job.emit("warning", error);
+        }
+    }).bind(this));
+    
+    this.servers[server_name].connection.on("data", (function(handle, error, options){
+        if(options && options.job){
+            options.job.emit("data", error);
+        }
+    }).bind(this));
+    
     this.servers[server_name].connection.on("fail", (function(handle, options){
         if(options && options.job){
             options.job.emit("fail");
@@ -67,12 +79,23 @@ Gearman.prototype.addServer = function(server_name, server_port){
 Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
     uid = uid || null;
     if(this.functions[func_name]){
-        this.functions[func_name](payload, (function(err, response){
+        this.functions[func_name](payload, (function(err, response, type){
             if(err){
                 this.servers[server_name].connection.jobError(handle, err.message || err);
                 return;
             }
-            this.servers[server_name].connection.jobComplete(handle, response);
+            switch(type){
+                case "warning":
+                    this.servers[server_name].connection.jobWarning(handle, response);
+                    break;
+                case "data":
+                    this.servers[server_name].connection.jobData(handle, response);
+                    break;
+                case "normal":
+                default:
+                    this.servers[server_name].connection.jobComplete(handle, response);
+            }
+            
         }).bind(this));
     }else{
         this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
@@ -142,6 +165,31 @@ Gearman.prototype.unregister = function(func_name, server_name){
     }
 }
 
+
+Gearman.prototype.getExceptions = function(server_name, callback){
+    var pos;
+    if(this.servers[server_name]){
+
+            this.servers[server_name].connection.getExceptions((function(err, success){
+                if(callback){
+                    return callback(err, success);
+                }
+                if(err){
+                    console.log("Server "+server_name+" responded with error: "+(err.message || err));
+                }else{
+                    console.log("Exceptions are followed from "+server_name);
+                }
+            }).bind(this));
+
+    }else{
+        this.server_names.forEach((function(server_name){
+            if(server_name){
+                this.getExceptions(server_name);
+            }
+        }).bind(this))
+    }
+}
+
 Gearman.prototype.addFunction = function(name, func){
     if(!name){
         return false;
@@ -183,19 +231,20 @@ Gearman.prototype.submitJob = function(func_name, payload, options){
         return false;
     }
 
-    var job = new EventEmitter();
+    var server = this.servers[this.server_names[this.server_names.length-1]];
 
-    options = options || {};
-    options.job = job;
-
-    if(!this.server_names.length){
-        return;
-    }
-    
-    this.servers[this.server_names[0]].connection.submitJob(func_name, payload, options);
-    
-    return job;    
+    return new Gearman.GearmanJob(func_name, payload, options, server);
 }
+
+Gearman.GearmanJob = function(func_name, payload, options, server){
+    EventEmitter.call(this);
+    
+    options = options || {};
+    options.job = this;
+    
+    server.connection.submitJob(func_name, payload, options);
+}
+utillib.inherits(Gearman.GearmanJob, EventEmitter);
 
 module.exports = Gearman;
 

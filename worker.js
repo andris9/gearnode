@@ -15,7 +15,16 @@ worker.addFunction("reverse", function(payload, callback){
         reversed = str.reverse();
     
     if(callback){
-        callback(false, reversed)
+        setTimeout(function(){
+            callback(null, "andmepakett", "data");
+            setTimeout(function(){
+                callback(null, "probla tekkis!", "warning");
+                setTimeout(function(){
+                    callback(null, reversed);
+                },500);
+            },500);
+        },500);
+        
     }else{
         return str.reverse(reversed);
     }

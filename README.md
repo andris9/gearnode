@@ -10,8 +10,11 @@
 
     worker= new Gearman();
     worker.addServer("localhost", 7003);
-    worker.addFunction("upper", function(payload){
-        return payload.toString("utf-8").toUpperCase();
+    worker.addFunction("upper", function(payload, callback){
+        var response =  payload.toString("utf-8").toUpperCase(),
+            error = null;
+            
+        callback(error, response);
     });
     
 ### Client
