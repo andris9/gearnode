@@ -1,4 +1,4 @@
-var Gearman = require("./gearman");
+var Gearman = require("./gearnode");
 
 String.prototype.reverse = function(){
     splitext = this.split("");
@@ -11,8 +11,8 @@ worker= new Gearman();
 worker.addServer("localhost", 7003);
 worker.setWorkerId("testkast");
 
-worker.addFunction("reverse", function(payload, job){
-    var str = payload.toString("utf-8"),
+worker.addFunction("reverse", "utf-8", function(payload, job){
+    var str = payload,
         reversed = str.reverse();
     
     setTimeout(function(){
@@ -35,7 +35,9 @@ worker.addFunction("reverse", function(payload, job){
     },500);
 });
 
-worker.addFunction("reverse2", function(payload){
-    var str = payload.toString("utf-8");
-    return str.reverse();
+worker.addFunction("sqr", "number", function(payload, job){
+    if(payload < 0){
+        job.warning("Used number is smaller than zero!");
+    }
+    job.complete(payload * payload);
 });

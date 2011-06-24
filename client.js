@@ -1,4 +1,4 @@
-var Gearman = require("./gearman");
+var Gearman = require("./gearnode");
 
 client = new Gearman();
 client.addServer("localhost", 7003);
@@ -7,7 +7,7 @@ client.getExceptions(function(err, success){
     console.log(success && "Registered for exceptions" || "No exceptions");
 });
 
-var job = client.submitJob("reverse", "Hello world!", {encoding:"base64"});    
+var job = client.submitJob("sqr", -25, {encoding:"number"});    
 
 job.on("created", function(handle){
     console.log("Job created as '"+handle+"'");
@@ -38,3 +38,4 @@ job.on("data", function(message){
 job.on("status", function(nu, de){
     console.log("Status "+nu+" / "+de);
 });
+

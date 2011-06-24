@@ -6,7 +6,7 @@
 
 ### Worker
 
-    var Gearman = require("./gearman");
+    var Gearman = require("./gearnode");
 
     worker= new Gearman();
     worker.addServer("localhost", 7003);
@@ -17,7 +17,7 @@
     
 ### Client
 
-    var Gearman = require("./gearman");
+    var Gearman = require("./gearnode");
 
     client = new Gearman();
     client.addServer("localhost", 7003);
@@ -33,7 +33,7 @@
 
 ### Require Gearman library
 
-    var Gearman = require("./gearman");
+    var Gearman = require("./gearnode");
 
 ### Create a new Gearman worker/client
 
@@ -87,7 +87,7 @@ Where
   
 Possible option values
 
-  * **encoding** - indicates the encoding for the job response (default is Buffer). Can be "utf-8", "ascii", "base64" or "buffer"
+  * **encoding** - indicates the encoding for the job response (default is Buffer). Can be "utf-8", "ascii", "base64", "number" or "buffer"
   * **background** - if set to true, detach the job from the client (complete and error events will not be sent to the client)
   * **priority** - indicates the priority of the job. Possible values "low", "normal" (default) and "high"
   
@@ -119,3 +119,44 @@ Example
     
 ### Create a worker function
 
+    worker.addFunction(func_name[, encoding], worker_func)
+    
+Where
+
+  * **func_name** is the name of the function to be created
+  * **endocing** is the input encoding (default is buffer)
+  * **worker_func** is the actual worker function
+
+#### Worker function
+
+    worker_func = function(payload, job)
+    
+Where
+
+  * **payload** is the data sent by the client and in the encoding specified with *addFunction*
+  * **job** is a Gearman Job object that can be used to send data back
+  
+#### Job object
+
+Job object has the following methods
+
+  * **complete(response)** - send the result of the function back to the client
+  * **error(error)** - throw an exception (and end the job with *failed* status)
+  * **fail()** - end the function without response data when the function failed
+  * **warning(warning)** - send a warning message to the client
+  * **data(response)** - send a partial response data to the client
+  * **setStatus(numerator, denominator)** - send a progress event to the client
+  
+#### Example
+
+    var Gearman = require("./gearnode");
+    
+    var worker = new Gearman();
+    worker.addServer();
+    
+    worker.addFunction("sqr", "number", function(payload, job){
+        if(payload < 0){
+            job.warning("Used number is smaller than zero!");
+        }
+        job.complete(payload * payload);
+    });

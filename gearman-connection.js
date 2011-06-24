@@ -597,6 +597,9 @@ GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, re
         case "base64":
             response = response && response.toString(encoding) || "";
             break;
+        case "number":
+            response = Number(response && response.toString("ascii") || "") || 0;
+            break;
         case "buffer":
         default:
             // keep buffer
@@ -624,6 +627,9 @@ GearmanConnection.prototype.handler_WORK_DATA = function(command, handle, payloa
         case "ascii":
         case "base64":
             payload = payload && payload.toString(encoding) || "";
+            break;
+        case "number":
+            payload = Number(payload && payload.toString("ascii") || "") || 0;
             break;
         case "buffer":
         default:

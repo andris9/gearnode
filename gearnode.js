@@ -85,8 +85,25 @@ Gearman.prototype.addServer = function(server_name, server_port){
 Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
     uid = uid || null;
     if(this.functions[func_name]){
+        
+        var encoding = this.functions[func_name].encoding.toLowerCase() || "buffer";
+        
+        switch(encoding){
+            case "utf-8":
+            case "ascii":
+            case "base64":
+                payload = payload && payload.toString(encoding) || "";
+                break;
+            case "number":
+                payload = Number(payload && payload.toString("ascii") || "") || 0;
+                break;
+            case "buffer":
+            default:
+                // keep buffer
+        }
+        
         var job = new Gearman.GearmanWorker(handle, server_name, this);
-        this.functions[func_name](payload, job);
+        this.functions[func_name].func(payload, job);
     }else{
         this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
     }
@@ -212,17 +229,30 @@ Gearman.prototype.setWorkerId = function(server_name, id){
     }
 }
 
-Gearman.prototype.addFunction = function(name, func){
+Gearman.prototype.addFunction = function(name, encoding, func){
     if(!name){
         return false;
     }
     
+    if(!func && typeof encoding=="function"){
+        func = encoding;
+        encoding = null;
+    }else if(typeof func != "function"){
+        return;
+    }
+    
     if(!(name in this.functions)){
-        this.functions[name] = func;
+        this.functions[name] = {
+            func: func,
+            encoding: encoding || "buffer"
+        }
         this.function_names.push(name);
         this.register(name);
     }else{
-        this.functions[name] = func;
+        this.functions[name] = {
+            func: func,
+            encoding: encoding || "buffer"
+        }
         this.function_names.push(name);
     }
     
@@ -291,6 +321,8 @@ Gearman.GearmanWorker.prototype.error = function(error){
 }
 
 Gearman.GearmanWorker.prototype.setStatus = function(numerator, denominator){
+    numerator = parseInt(numerator, 10) || 0;
+    denominator = parseInt(denominator, 10) || 0;
     this.gm.servers[this.server_name].connection.jobStatus(this.handle, numerator, denominator);
 }
 
