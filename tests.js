@@ -367,7 +367,7 @@ module.exports.worker = testCase({
     test_partial_data: function(test){
         test.expect(4);
         
-        var job = this.client.submitJob("partial", "test", {encoding:"number"}),
+        var job = this.client.submitJob("partial", "test", {encoding:"utf-8"}),
             i = 0;
         
         job.on("complete", function(data){
@@ -391,7 +391,7 @@ module.exports.worker = testCase({
             console.log("DATA")
             console.log(arguments);
             console.log(i)
-            test.equal(i++, data, "Function part OK");
+            test.equal(String(i++), data, "Function part OK");
         });
     },
     
@@ -428,7 +428,7 @@ module.exports.worker = testCase({
         var job = this.client.submitJob("getfail","test", {encoding:"utf-8"});
         
         job.on("complete", function(data){
-            test.ok(false, "SHould not complete");
+            test.ok(false, "Should not complete");
             test.done();
         });
         
