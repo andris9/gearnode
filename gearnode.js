@@ -326,6 +326,10 @@ Gearman.GearmanWorker.prototype.warning = function(warning){
     this.gm.servers[this.server_name].connection.jobWarning(this.handle, warning);
 }
 
+Gearman.GearmanWorker.prototype.fail = function(){
+    this.gm.servers[this.server_name].connection.jobFail(this.handle);
+}
+
 Gearman.GearmanWorker.prototype.error = function(error){
     this.gm.servers[this.server_name].connection.jobError(this.handle, error);
 }
