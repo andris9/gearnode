@@ -207,7 +207,7 @@ module.exports.worker = testCase({
         
         this.worker.addFunction("partial",function(payload, job){
             for(var i=0; i<4; i++){
-                job.data("data" + (i++));
+                job.data("data" + i);
             }
             job.complete("ready");
         });
