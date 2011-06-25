@@ -229,7 +229,7 @@ module.exports.worker = testCase({
         callback();
     },
     
-    test_upper: function (test) {
+    upper: function (test) {
         
         test.expect(1);
         
@@ -250,7 +250,7 @@ module.exports.worker = testCase({
         });
     },
     
-    test_upper_utf8: function (test) {
+    upper_utf8: function (test) {
         
         test.expect(1);
         
@@ -271,7 +271,7 @@ module.exports.worker = testCase({
         });
     },
     
-    test_upper_base64: function (test) {
+    upper_base64: function (test) {
         
         test.expect(1);
         
@@ -292,7 +292,7 @@ module.exports.worker = testCase({
         });
     },
     
-    test_upper_expect_utf8: function (test) {
+    upper_expect_utf8: function (test) {
         
         test.expect(1);
         
@@ -313,7 +313,7 @@ module.exports.worker = testCase({
         });
     },
     
-    test_upper_expect_base64: function (test) {
+    upper_expect_base64: function (test) {
         
         test.expect(1);
         
@@ -359,7 +359,7 @@ module.exports.worker = testCase({
         }).bind(this));
     },
     
-    test_partial_data: function(test){
+    partial_data: function(test){
         test.expect(5);
         
         var job = this.client.submitJob("partial", "test", {encoding:"utf-8"}),
@@ -385,7 +385,7 @@ module.exports.worker = testCase({
         });
     },
     
-    test_warning: function (test) {
+    warning: function (test) {
         
         test.expect(2);
         
@@ -411,7 +411,7 @@ module.exports.worker = testCase({
         });
     },
     
-    test_fail: function (test) {
+    fail: function (test) {
         
         test.expect(1);
         
