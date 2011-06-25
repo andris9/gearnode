@@ -367,6 +367,7 @@ module.exports.worker = testCase({
             i = 0;
         
         job.on("complete", function(data){
+            console.log(arguments);
             test.equal(data, "ready", "Function success");
             test.done();
         });
@@ -382,8 +383,8 @@ module.exports.worker = testCase({
         });
         
         job.on("data", function(data){
+            console.log(arguments);
             test.equal(i++, data, "Function part OK");
-            test.done();
         });
     },
     
@@ -394,11 +395,13 @@ module.exports.worker = testCase({
         var job = this.client.submitJob("getwarning","test", {encoding:"utf-8"});
         
         job.on("complete", function(data){
+            console.log(arguments);
             test.equal(data, "bar", "Completed");
             test.done();
         });
         
         job.on("warning", function(data){
+            console.log(arguments);
             test.equal(data, "foo", "Function warning");
         });
         
