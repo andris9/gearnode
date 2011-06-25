@@ -206,15 +206,10 @@ module.exports.worker = testCase({
         });
         
         this.worker.addFunction("partial",function(payload, job){
-            var i=0;
-            job.data(i++);
-            console.log("SENT 0")
-            job.data(i++);
-            console.log("SENT 1")
-            job.data(i++);
-            console.log("SENT 2")
+            for(var i=0; i<4; i++){
+                job.data("data" + (i++));
+            }
             job.complete("ready");
-            console.log("READY")
         });
         
         this.worker.addFunction("getwarning",function(payload, job){
@@ -391,7 +386,7 @@ module.exports.worker = testCase({
             console.log("DATA")
             console.log(arguments);
             console.log(i)
-            test.equal(String(i++), data, "Function part OK");
+            test.equal("data" + (i++), data, "Function part OK");
         });
     },
     
