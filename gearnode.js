@@ -80,6 +80,12 @@ Gearman.prototype.addServer = function(server_name, server_port){
         }
     }).bind(this));
     
+    this.servers[server_name].connection.on("disconnect", (function(){
+        if(options && options.job){
+            options.job.emit("disconnect", server_name);
+        }
+    }).bind(this));
+    
     this.update(server_name);
 }
 

@@ -15,6 +15,8 @@ Tests are run with *nodeunit*
     npm install nodeunit -g
     nodeunit test.js
 
+Tests expect a gearman demon running on port 7003
+
 ## Usage
 
 ### Worker
