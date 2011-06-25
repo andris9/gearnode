@@ -360,14 +360,12 @@ module.exports.worker = testCase({
     },
     
     test_partial_data: function(test){
-        test.expect(4);
+        test.expect(5);
         
         var job = this.client.submitJob("partial", "test", {encoding:"utf-8"}),
             i = 0;
         
         job.on("complete", function(data){
-            console.log("COMPLETE")
-            console.log(arguments);
             test.equal(data, "ready", "Function success");
             test.done();
         });
@@ -383,9 +381,6 @@ module.exports.worker = testCase({
         });
         
         job.on("data", function(data){
-            console.log("DATA")
-            console.log(arguments);
-            console.log(i)
             test.equal("data" + (i++), data, "Function part OK");
         });
     },
