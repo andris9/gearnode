@@ -4,6 +4,17 @@
 
 **NB!** this is usable beta but probably not yet ready for production, I'll yet have to do a lot of refactoring and optimization
 
+## Installation
+
+    npm install gearnode
+    
+## Tests
+
+Tests are run with *nodeunit*
+
+    npm install nodeunit -g
+    nodeunit test.js
+
 ## Usage
 
 ### Worker
@@ -77,6 +88,22 @@ Example
         console.log(exception);
     });
     
+### Assign an ID for the Worker
+
+Worker ID's identify unique workers for monitoring Gearman. 
+
+    worker.setWorkerId(id)
+    
+Where
+
+  * **id** is a string that will act as the name for the worker
+
+Example
+
+    worker = new Gearman();
+    worker.addServer(); // use default values
+    worker.setWorkerId("my_worker");
+
 ### Submit a job
 
     client.submitJob(func, payload[, options])
@@ -93,7 +120,7 @@ Possible option values
   * **background** - if set to true, detach the job from the client (complete and error events will not be sent to the client)
   * **priority** - indicates the priority of the job. Possible values "low", "normal" (default) and "high"
   
-Returns a Gearman Job object with the following events
+Returns a Client Job object with the following events
 
   * **created** - when the function is queued by the server (params: handle value) 
   * **complete** - when the function returns (params: response data in encoding specified by the options value)
@@ -138,9 +165,9 @@ Where
   * **payload** is the data sent by the client and in the encoding specified with *addFunction*
   * **job** is a Gearman Job object that can be used to send data back
   
-#### Job object
+#### Worker Job object
 
-Job object has the following methods
+Worker Job object has the following methods
 
   * **complete(response)** - send the result of the function back to the client
   * **error(error)** - throw an exception (and end the job with *failed* status)

@@ -10,6 +10,8 @@ function Gearman(){
     
     this.function_names = [];
     this.functions = {};
+    
+    this.workerId = null;
 }
 utillib.inherits(Gearman, EventEmitter);
 
@@ -31,7 +33,6 @@ Gearman.prototype.addServer = function(server_name, server_port){
     
     this.servers[server_name].connection.on("error", function(err){
         console.log("Error with "+server_name);
-        //console.log(err.message);
         console.log(err.stack);
     });
     
@@ -82,33 +83,6 @@ Gearman.prototype.addServer = function(server_name, server_port){
     this.update(server_name);
 }
 
-Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
-    uid = uid || null;
-    if(this.functions[func_name]){
-        
-        var encoding = this.functions[func_name].encoding.toLowerCase() || "buffer";
-        
-        switch(encoding){
-            case "utf-8":
-            case "ascii":
-            case "base64":
-                payload = payload && payload.toString(encoding) || "";
-                break;
-            case "number":
-                payload = Number(payload && payload.toString("ascii") || "") || 0;
-                break;
-            case "buffer":
-            default:
-                // keep buffer
-        }
-        
-        var job = new Gearman.GearmanWorker(handle, server_name, this);
-        this.functions[func_name].func(payload, job);
-    }else{
-        this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
-    }
-}
-
 Gearman.prototype.removeServer = function(server_name){
     var connection, pos;
     
@@ -130,6 +104,11 @@ Gearman.prototype.removeServer = function(server_name){
     return true;
 }
 
+Gearman.prototype.end = function(){
+    for(var i=this.server_names.length-1; i>=0; i--){
+        this.removeServer(this.server_names[i]);
+    }
+}
 
 Gearman.prototype.update = function(server_name){
     if(!server_name){
@@ -139,6 +118,10 @@ Gearman.prototype.update = function(server_name){
     this.function_names.forEach((function(func_name){
         this.register(func_name, server_name);
     }).bind(this));
+    
+    if(this.workerId){
+        this.setWorkerId(server_name, this.workerId);
+    }
 }
 
 Gearman.prototype.register = function(func_name, server_name){
@@ -172,37 +155,36 @@ Gearman.prototype.unregister = function(func_name, server_name){
     }
 }
 
+// WORKER FUNCTIONS
 
-Gearman.prototype.getExceptions = function(server_name, callback){
-    var pos;
-    
-    if(!callback && typeof server_name =="function"){
-        callback = server_name;
-        server_name = null;
-    }
-    
-    if(server_name){
-        if(this.servers[server_name]){
-
-            this.servers[server_name].connection.getExceptions((function(err, success){
-                if(callback){
-                    return callback(err, success);
-                }
-                if(err){
-                    console.log("Server "+server_name+" responded with error: "+(err.message || err));
-                }else{
-                    console.log("Exceptions are followed from "+server_name);
-                }
-            }).bind(this));
+Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid){
+    uid = uid || null;
+    if(this.functions[func_name]){
+        
+        var encoding = this.functions[func_name].encoding.toLowerCase() || "buffer";
+        
+        switch(encoding){
+            case "utf-8":
+            case "ascii":
+            case "base64":
+                payload = payload && payload.toString(encoding) || "";
+                break;
+            case "number":
+                payload = Number(payload && payload.toString("ascii") || "") || 0;
+                break;
+            case "buffer":
+            default:
+                // keep buffer
         }
+        
+        var job = new Gearman.GearmanWorker(handle, server_name, this);
+        this.functions[func_name].func(payload, job);
     }else{
-        this.server_names.forEach((function(server_name){
-            if(server_name){
-                this.getExceptions(server_name, callback);
-            }
-        }).bind(this))
+        this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
     }
 }
+
+
 
 Gearman.prototype.setWorkerId = function(server_name, id){
     var pos;
@@ -217,10 +199,10 @@ Gearman.prototype.setWorkerId = function(server_name, id){
     
     if(server_name){
         if(this.servers[server_name]){
-
             this.servers[server_name].connection.setWorkerId(id);
         }
     }else{
+        this.workerId = id;
         this.server_names.forEach((function(server_name){
             if(server_name){
                 this.setWorkerId(server_name, id);
@@ -253,7 +235,6 @@ Gearman.prototype.addFunction = function(name, encoding, func){
             func: func,
             encoding: encoding || "buffer"
         }
-        this.function_names.push(name);
     }
     
 }
@@ -272,9 +253,36 @@ Gearman.prototype.removeFunction = function(name){
     }
 }
 
-Gearman.prototype.end = function(){
-    for(var i=this.server_names.length-1; i>=0; i--){
-        this.removeServer(this.server_names[i]);
+// CLIENT FUNCTIONS
+
+Gearman.prototype.getExceptions = function(server_name, callback){
+    var pos;
+    
+    if(!callback && typeof server_name =="function"){
+        callback = server_name;
+        server_name = null;
+    }
+    
+    if(server_name){
+        if(this.servers[server_name]){
+
+            this.servers[server_name].connection.getExceptions((function(err, success){
+                if(callback){
+                    return callback(err, success);
+                }
+                if(err){
+                    console.log("Server "+server_name+" responded with error: "+(err.message || err));
+                }else{
+                    console.log("Exceptions are followed from "+server_name);
+                }
+            }).bind(this));
+        }
+    }else{
+        this.server_names.forEach((function(server_name){
+            if(server_name){
+                this.getExceptions(server_name, callback);
+            }
+        }).bind(this))
     }
 }
 
@@ -288,6 +296,8 @@ Gearman.prototype.submitJob = function(func_name, payload, options){
     return new Gearman.GearmanJob(func_name, payload, options, server);
 }
 
+
+// WORKER JOB
 Gearman.GearmanJob = function(func_name, payload, options, server){
     EventEmitter.call(this);
     

@@ -16,11 +16,12 @@ function GearmanConnection(server, port){
     
     this.queued_jobs = {};
     
+    this.workerId = null;
+    
     this.connected = false;
     this.processing = false;
     this.failed = false;
     
-    this.retries = 0;
     this.remainder = false;
     
     this.debug = false;
@@ -140,12 +141,7 @@ GearmanConnection.prototype.processQueue = function(){
     
     // if no connection yet, open one
     if(!this.connected){
-        if(this.retries<5){
-            this.connect();
-        }else{
-            console.log("failed");
-            this.failed = true;
-        }
+        return this.connect();
         return false;
     }
     
@@ -265,15 +261,13 @@ GearmanConnection.prototype.connect = function(){
     this.socket.on("connect", (function(){
         this.connecting = false;
         this.connected = true;
-        this.retries = 0;
     
         if(this.debug){
             console.log("connected!");
-        }        
+        }
+        
         this.processQueue();
-            
     }).bind(this));
-    
 
     this.socket.on("end", this.close.bind(this));
     this.socket.on("error", this.close.bind(this));
@@ -298,7 +292,7 @@ GearmanConnection.prototype.close = function(){
         }
         this.connected = false;
         this.connecting = false;
-        this.retries++;
+        this.emit("disconnect");
     }
 }
 
@@ -420,6 +414,7 @@ GearmanConnection.prototype.getExceptions = function(callback){
 }
 
 GearmanConnection.prototype.setWorkerId = function(id){
+    this.workerId = id;
     this.sendCommand({
         type: "SET_CLIENT_ID",
         params: [id]
