@@ -20,9 +20,9 @@ Tests expect a Gearman daemon running on port 7003
 
 ### Worker
 
-    var Gearman = require("gearnode");
+    var Gearnode = require("gearnode");
 
-    worker= new Gearman();
+    worker= new Gearnode();
     worker.addServer();
     
     worker.addFunction("upper", function(payload, job){
@@ -32,9 +32,9 @@ Tests expect a Gearman daemon running on port 7003
     
 ### Client
 
-    var Gearman = require("gearnode");
+    var Gearnode = require("gearnode");
 
-    client = new Gearman();
+    client = new Gearnode();
     client.addServer();
 
     var job = client.submitJob("upper", "hello world!", {encoding:'utf-8'});
@@ -48,15 +48,15 @@ Tests expect a Gearman daemon running on port 7003
 
 ### Require Gearman library
 
-    var Gearman = require("gearnode");
+    var Gearnode = require("gearnode");
 
-### Create a new Gearman worker/client
+### Create a new Gearnode worker/client
 
-    var gearman = new Gearman();
+    var gearnode = new Gearnode();
     
 ### Add a server
 
-    gearman.addServer([host][, port])
+    gearnode.addServer([host][, port])
 
 Where
 
@@ -80,7 +80,7 @@ Where
 
 Example
 
-    client = new Gearman();
+    client = new Gearnode();
     client.addServer(); // use default values
     worker.getExceptions();
     
@@ -102,7 +102,7 @@ Where
 
 Example
 
-    worker = new Gearman();
+    worker = new Gearnode();
     worker.addServer(); // use default values
     worker.setWorkerId("my_worker");
 
@@ -134,7 +134,7 @@ Returns a Client Job object with the following events
   
 Example
 
-    client = new Gearman();
+    client = new Gearnode();
     client.addServer(); // use default values
     worker.getExceptions();
     
@@ -180,9 +180,9 @@ Worker Job object has the following methods
   
 #### Example
 
-    var Gearman = require("./gearnode");
+    var Gearnode = require("./gearnode");
     
-    var worker = new Gearman();
+    var worker = new Gearnode();
     worker.addServer();
     
     worker.addFunction("sqr", "number", function(payload, job){
