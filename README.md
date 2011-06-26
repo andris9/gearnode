@@ -23,10 +23,10 @@ Tests expect a Gearman daemon running on port 7003
     var Gearnode = require("gearnode");
 
     worker = new Gearnode();
-    worker.addServer();
+    worker.addServer(); // use localhost
     
-    worker.addFunction("upper", function(payload, job){
-        var response =  payload.toString("utf-8").toUpperCase();
+    worker.addFunction("upper", function(payload, "utf-8", job){
+        var response =  payload.toUpperCase();
         job.complete(response);
     });
     
