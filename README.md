@@ -65,14 +65,14 @@ Where
 
 Example
 
-    worker.addServer(); // use default values
-    worker.addServer("gearman.lan", 7003);
+    gearnode.addServer(); // use default values
+    gearnode.addServer("gearman.lan", 7003);
     
 ### Register for exceptions
 
 Exceptions are not sent to the client by default. To turn these on use the following command. 
 
-    client.getExceptions([callback])
+    gearnode.getExceptions([callback])
     
 Where
 
@@ -82,7 +82,7 @@ Example
 
     client = new Gearnode();
     client.addServer(); // use default values
-    worker.getExceptions();
+    client.getExceptions();
     
     job = client.submitJob("reverse", "Hello world!");
     
@@ -94,7 +94,7 @@ Example
 
 Worker ID's identify unique workers for monitoring Gearman. 
 
-    worker.setWorkerId(id)
+    gearnode.setWorkerId(id)
     
 Where
 
@@ -108,7 +108,7 @@ Example
 
 ### Submit a job
 
-    client.submitJob(func, payload[, options])
+    gearnode.submitJob(func, payload[, options])
     
 Where
 
@@ -150,7 +150,7 @@ Example
     
 ### Create a worker function
 
-    worker.addFunction(func_name[, encoding], worker_func)
+    gearnode.addFunction(func_name[, encoding], worker_func)
     
 Where
 
@@ -180,7 +180,7 @@ Worker Job object has the following methods
   
 #### Example
 
-    var Gearnode = require("./gearnode");
+    var Gearnode = require("gearnode");
     
     var worker = new Gearnode();
     worker.addServer();
