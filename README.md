@@ -20,7 +20,7 @@ Tests expect a Gearman daemon running on port 7003
 
 ### Worker
 
-    var Gearman = require("./gearnode");
+    var Gearman = require("gearnode");
 
     worker= new Gearman();
     worker.addServer();
@@ -32,7 +32,7 @@ Tests expect a Gearman daemon running on port 7003
     
 ### Client
 
-    var Gearman = require("./gearnode");
+    var Gearman = require("gearnode");
 
     client = new Gearman();
     client.addServer();
@@ -48,7 +48,7 @@ Tests expect a Gearman daemon running on port 7003
 
 ### Require Gearman library
 
-    var Gearman = require("./gearnode");
+    var Gearman = require("gearnode");
 
 ### Create a new Gearman worker/client
 
