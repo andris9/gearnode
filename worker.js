@@ -5,7 +5,7 @@ String.prototype.reverse = function(){
     revertext = splitext.reverse();
     reversed = revertext.join("");
     return reversed;
-}
+};
 
 worker= new Gearman();
 worker.addServer("localhost", 7003);

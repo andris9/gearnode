@@ -13,9 +13,9 @@
 Tests are run with *nodeunit*
 
     npm install nodeunit -g
-    nodeunit test.js
+    nodeunit tests.js
 
-Tests expect a gearman demon running on port 7003
+Tests expect a Gearman daemon running on port 7003
 
 ## Usage
 
@@ -24,7 +24,8 @@ Tests expect a gearman demon running on port 7003
     var Gearman = require("./gearnode");
 
     worker= new Gearman();
-    worker.addServer("localhost", 7003);
+    worker.addServer();
+    
     worker.addFunction("upper", function(payload, job){
         var response =  payload.toString("utf-8").toUpperCase();
         job.complete(response);
@@ -35,7 +36,7 @@ Tests expect a gearman demon running on port 7003
     var Gearman = require("./gearnode");
 
     client = new Gearman();
-    client.addServer("localhost", 7003);
+    client.addServer();
 
     var job = client.submitJob("upper", "hello world!", {encoding:'utf-8'});
 

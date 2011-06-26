@@ -64,7 +64,7 @@ GearmanConnection.packet_types = {
     SUBMIT_JOB_LOW_BG: 34,
     SUBMIT_JOB_SCHED: 35,
     SUBMIT_JOB_EPOCH: 36
-}
+};
 
 GearmanConnection.packet_types_reversed = {
     "1": "CAN_DO",
@@ -102,7 +102,7 @@ GearmanConnection.packet_types_reversed = {
     "34": "SUBMIT_JOB_LOW_BG",
     "35": "SUBMIT_JOB_SCHED",
     "36": "SUBMIT_JOB_EPOCH"
-}
+};
 
 GearmanConnection.param_count = {
     ERROR: ["string","string"],
@@ -114,8 +114,8 @@ GearmanConnection.param_count = {
     WORK_WARNING: ["string", "string"],
     WORK_DATA: ["string", "buffer"],
     WORK_FAIL: ["string"],
-    WORK_STATUS: ["string", "number", "number"],
-}
+    WORK_STATUS: ["string", "number", "number"]
+};
 
 GearmanConnection.prototype.sendCommand = function(command){
     if(!command){
@@ -125,7 +125,7 @@ GearmanConnection.prototype.sendCommand = function(command){
     if(typeof command == "string"){
         command = {
             type: command
-        }
+        };
     }
     
     if(!command.params){
@@ -133,7 +133,7 @@ GearmanConnection.prototype.sendCommand = function(command){
     }
     this.command_queue.push(command);
     this.processQueue();
-}
+};
 
 
 GearmanConnection.prototype.processQueue = function(){
@@ -142,7 +142,6 @@ GearmanConnection.prototype.processQueue = function(){
     // if no connection yet, open one
     if(!this.connected){
         return this.connect();
-        return false;
     }
     
     // get commands as FIFO
@@ -153,22 +152,23 @@ GearmanConnection.prototype.processQueue = function(){
     }else{
         this.processing = false;
     }
-}
+};
 
 GearmanConnection.prototype.runCommand = function(command){
     if(!command || !command.type || !GearmanConnection.packet_types[command.type]){
         return;
     }
     this.send(command);
-}
+};
 
 GearmanConnection.prototype.send = function(command){
-    var magicREQ  = new Buffer([00, 82, 69, 81]), //\0REQ
+    var magicREQ = new Buffer([0, 82, 69, 81]), //\0REQ
         type = tools.packInt(GearmanConnection.packet_types[command.type], 4),
-        param, params = [], paramlen = 0, size = 0, buf, pos;
+        param, params = [], paramlen = 0, size = 0, buf, pos,
+        i, len;
     
     // teeme parameetritest ükshaaval Buffer objektid ning loeme pikkused kokku
-    for(var i=0; i<command.params.length; i++){
+    for(i=0, len=command.params.length; i<len; i++){
         if(command.params[i] instanceof Buffer){
             params.push(command.params[i]);
             size += command.params[i].length;
@@ -205,7 +205,7 @@ GearmanConnection.prototype.send = function(command){
     pos = 12;
     
     // kopeerime ükshaaval parameetrid
-    for(var i=0; i<params.length; i++){
+    for(i=0, len=params.length; i<len; i++){
         params[i].copy(buf, pos, 0);
         pos += params[i].length;
         // juhul kui tegu pole viimase elemendiga, lisa ka \0
@@ -237,7 +237,7 @@ GearmanConnection.prototype.send = function(command){
             this.processQueue();
         }).bind(this));    
     }).bind(this));
-}
+};
 
 // CONNECTION COMMANDS
 
@@ -275,13 +275,13 @@ GearmanConnection.prototype.connect = function(){
     this.socket.on("timeout", this.close.bind(this));
     
     this.socket.on("data", this.receive.bind(this));
-}
+};
 
 GearmanConnection.prototype.closeConnection = function(){
     if(this.connected){
         this.socket.end();
     }
-}
+};
 
 GearmanConnection.prototype.close = function(){
     if(this.connected){
@@ -294,7 +294,7 @@ GearmanConnection.prototype.close = function(){
         this.connecting = false;
         this.emit("disconnect");
     }
-}
+};
 
 // WORKER COMMANDS
 
@@ -312,7 +312,7 @@ GearmanConnection.prototype.addFunction = function(func_name){
         type: "GRAB_JOB",
         pipe: true
     });
-}
+};
 
 GearmanConnection.prototype.removeFunction = function(func_name){
     this.sendCommand({
@@ -323,11 +323,11 @@ GearmanConnection.prototype.removeFunction = function(func_name){
     if(this.debug){
         console.log("Unregistered for '"+func_name+"'");
     }
-}
+};
 
 GearmanConnection.prototype.removeAllFunction = function(){
     this.sendCommand("RESET_ABILITIES");
-}
+};
 
 GearmanConnection.prototype.jobComplete = function(handle, payload){
     this.sendCommand({
@@ -336,7 +336,7 @@ GearmanConnection.prototype.jobComplete = function(handle, payload){
     });
     
     this.sendCommand("GRAB_JOB");    
-}
+};
 
 GearmanConnection.prototype.jobFail = function(handle){
     this.sendCommand({
@@ -345,7 +345,7 @@ GearmanConnection.prototype.jobFail = function(handle){
     });
     
     this.sendCommand("GRAB_JOB");
-}
+};
 
 GearmanConnection.prototype.jobError = function(handle, message){
     this.sendCommand({
@@ -354,28 +354,28 @@ GearmanConnection.prototype.jobError = function(handle, message){
     });
     
     this.jobFail(handle);
-}
+};
 
 GearmanConnection.prototype.jobWarning = function(handle, data){
     this.sendCommand({
         type: "WORK_WARNING",
         params: [handle, data]
     });
-}
+};
 
 GearmanConnection.prototype.jobData = function(handle, data){
     this.sendCommand({
         type: "WORK_DATA",
         params: [handle, data]
     });
-}
+};
 
 GearmanConnection.prototype.jobStatus = function(handle, numerator, denominator){
     this.sendCommand({
         type: "WORK_STATUS",
         params: [handle, tools.packInt(numerator), tools.packInt(denominator)]
     });
-}
+};
 
 // CLIENT COMMANDS
 
@@ -402,7 +402,7 @@ GearmanConnection.prototype.submitJob = function(func_name, payload, options){
         options: options,
         pipe: true
     });
-}
+};
 
 GearmanConnection.prototype.getExceptions = function(callback){
     this.sendCommand({
@@ -411,7 +411,7 @@ GearmanConnection.prototype.getExceptions = function(callback){
         callback: callback,
         pipe: true
     });
-}
+};
 
 GearmanConnection.prototype.setWorkerId = function(id){
     this.workerId = id;
@@ -419,14 +419,14 @@ GearmanConnection.prototype.setWorkerId = function(id){
         type: "SET_CLIENT_ID",
         params: [id]
     });
-}
+};
 
 
 // RECEIVER
 
 GearmanConnection.prototype.receive = function(chunk){
     var buf = new Buffer((chunk && chunk.length || 0) + (this.remainder && this.remainder.length || 0)),
-        magicRES = new Buffer([00, 82, 69, 83]), type = new Buffer(4), paramlen = new Buffer(4),
+        magicRES = new Buffer([0, 82, 69, 83]), type = new Buffer(4), paramlen = new Buffer(4),
         action, piped, params;
     
     // nothing to do here
@@ -437,9 +437,13 @@ GearmanConnection.prototype.receive = function(chunk){
     // if theres a remainder value, tie it together with the incoming chunk
     if(this.remainder){
         this.remainder.copy(buf, 0, 0);
-        chunk && chunk.copy(buf, this.remainder.length, 0);
+        if(chunk){
+            chunk.copy(buf, this.remainder.length, 0);
+        }
     }else{
-        chunk && chunk.copy(buf, 0, 0);
+        if(chunk){
+            chunk.copy(buf, 0, 0);
+        }
     }
     
     // response needs to be at least 12 bytes
@@ -484,7 +488,7 @@ GearmanConnection.prototype.receive = function(chunk){
     if(buf.length > 12+paramlen){
         this.remainder = new Buffer(buf.length - (12+paramlen));
         buf.copy(this.remainder, 0, 12+paramlen);
-        process.nextTick(this.receive.bind(this))
+        process.nextTick(this.receive.bind(this));
     }else{
         this.remainder = false;
     }
@@ -495,18 +499,18 @@ GearmanConnection.prototype.receive = function(chunk){
     }
     
     this.handleCommand(type, params, piped);
-}
+};
 
 GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command){
     
-    var params = [], hint, positions = [], curpos=0, curparam;
+    var params = [], hint, positions = [], curpos=0, curparam, i, len;
     
     // check if there are expected params and if so, break 
     // the buffer into individual pieces
     if((hint = GearmanConnection.param_count[type]) && hint.length){
         
         // find \0 positions for individual params
-        for(var i=0, len = paramsBuffer.length; i<len; i++){
+        for(i=0, len = paramsBuffer.length; i<len; i++){
             if(paramsBuffer[i]===0){
                 positions.push(i);
                 if(positions.length >= hint.length-1){
@@ -515,7 +519,7 @@ GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command
             }
         }
 
-        for(var i=0, len = positions.length + 1; i<len; i++){
+        for(i=0, len = positions.length + 1; i<len; i++){
             curparam = new Buffer((positions[i] || paramsBuffer.length) - curpos);
             // there is no positions[i] for the last i, undefined is used instead
             paramsBuffer.copy(curparam, 0, curpos, positions[i]);
@@ -534,7 +538,7 @@ GearmanConnection.prototype.handleCommand = function(type, paramsBuffer, command
     if(this["handler_"+type]){
         this["handler_"+type].apply(this,[command].concat(params));
     }
-}
+};
 
 // INCOMING COMMANDS
 
@@ -546,26 +550,26 @@ GearmanConnection.prototype.handler_ERROR = function(command, code, message){
         return;
     }
     this.emit("error", new Error(message));
-}
+};
 
 // WORKER
 
 GearmanConnection.prototype.handler_NO_JOB = function(command){
     this.sendCommand("PRE_SLEEP");
-}
+};
 
 GearmanConnection.prototype.handler_NOOP = function(command){
     // probably some jobs available
     this.sendCommand("GRAB_JOB");
-}
+};
 
 GearmanConnection.prototype.handler_JOB_ASSIGN = function(command, handle, func_name, payload){
     this.emit("job", handle, func_name, payload);
-}
+};
 
 GearmanConnection.prototype.handler_JOB_ASSIGN_UNIQ = function(command, handle, func_name, uid, payload){
     this.emit("job", handle, func_name, payload, uid);
-}
+};
 
 // CLIENT
 
@@ -573,13 +577,13 @@ GearmanConnection.prototype.handler_OPTION_RES = function(command){
     if(command && command.callback){
         command.callback(null, true);
     }
-}
+};
 
 GearmanConnection.prototype.handler_JOB_CREATED = function(command, handle){
     var original = command || {};
     this.queued_jobs[handle] = command;
     this.emit("created", handle, original.options);
-}
+};
 
 GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, response){
     var original = this.queued_jobs[handle] || {},
@@ -595,23 +599,23 @@ GearmanConnection.prototype.handler_WORK_COMPLETE = function(command, handle, re
         case "number":
             response = Number(response && response.toString("ascii") || "") || 0;
             break;
-        case "buffer":
+        //case "buffer":
         default:
             // keep buffer
     }
 
     this.emit("complete", handle, response, original.options);
-}
+};
 
 GearmanConnection.prototype.handler_WORK_EXCEPTION = function(command, handle, error){
     var original = this.queued_jobs[handle] || {};
     this.emit("exception", handle, error, original.options);
-}
+};
 
 GearmanConnection.prototype.handler_WORK_WARNING = function(command, handle, error){
     var original = this.queued_jobs[handle] || {};
     this.emit("warning", handle, error, original.options);
-}
+};
 
 GearmanConnection.prototype.handler_WORK_DATA = function(command, handle, payload){
     var original = this.queued_jobs[handle] || {},
@@ -626,21 +630,21 @@ GearmanConnection.prototype.handler_WORK_DATA = function(command, handle, payloa
         case "number":
             payload = Number(payload && payload.toString("ascii") || "") || 0;
             break;
-        case "buffer":
+        //case "buffer":
         default:
             // keep buffer
     }
     
     this.emit("data", handle, payload, original.options);
-}
+};
 
 GearmanConnection.prototype.handler_WORK_FAIL = function(command, handle){
     var original = this.queued_jobs[handle] || {};
     delete this.queued_jobs[handle];
     this.emit("fail", handle, original.options);
-}
+};
 
 GearmanConnection.prototype.handler_WORK_STATUS = function(command, handle, numerator, denominator){
     var original = this.queued_jobs[handle] || {};
     this.emit("status", handle, numerator, denominator, original.options);
-}
+};

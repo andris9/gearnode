@@ -3,18 +3,18 @@ var Gearnode = require("./gearnode"),
     testCase = require('nodeunit').testCase;
 
 
-exports.gearnode_instance = function(test){
+exports["gearnode instance"] = function(test){
     var gearman = new Gearnode();
     test.expect(1);
     test.ok(gearman instanceof Gearnode, "Worker is a Gearnode instance");
     test.done();
-}
+};
 
 // ADD SERVER
 
-exports.server = {
+exports["test server"] = {
     
-    add_one_server: function(test){
+    "add one server": function(test){
         var gearman = new Gearnode();
         gearman.addServer();
         
@@ -24,7 +24,7 @@ exports.server = {
         test.done();
     },
     
-    add_one_server_multiple_times: function(test){
+    "add one server multiple times": function(test){
         var gearman = new Gearnode();
         gearman.addServer("localhost");
         gearman.addServer("localhost");
@@ -35,7 +35,7 @@ exports.server = {
         test.done();
     },
     
-    add_multiple_servers: function(test){
+    "add multiple servers": function(test){
         var gearman = new Gearnode();
         gearman.addServer("localhost.local");
         gearman.addServer("localhost.lan");
@@ -46,21 +46,21 @@ exports.server = {
         test.done();
     },
     
-    server_instance: function(test){
+    "server instance": function(test){
         var gearman = new Gearnode();
         gearman.addServer();
         
         test.expect(1);
-        test.ok(gearman.servers[gearman.server_names[0]].connection instanceof GearmanConnection, "Connection instance")
+        test.ok(gearman.servers[gearman.server_names[0]].connection instanceof GearmanConnection, "Connection instance");
         test.done();
     }
-}
+};
 
 // ADD FUNCTIONS
 
-exports.functions = {
+exports["test functions"] = {
     
-    add_one_function: function(test){
+    "add one function": function(test){
         var gearman = new Gearnode();
         
         gearman.addFunction("foo", function(){});
@@ -71,7 +71,7 @@ exports.functions = {
         test.done();
     },
     
-    add_one_function_multiple_times: function(test){
+    "add one function multiple times": function(test){
         var gearman = new Gearnode();
         
         gearman.addFunction("foo", function(){});
@@ -83,7 +83,7 @@ exports.functions = {
         test.done();
     },
     
-    add_multiple_functions: function(test){
+    "add multiple functions": function(test){
         var gearman = new Gearnode();
         
         gearman.addFunction("foo", function(){});
@@ -95,7 +95,7 @@ exports.functions = {
         test.done();
     },
     
-    function_properties: function(test){
+    "function properties": function(test){
         var gearman = new Gearnode();
         
         gearman.addFunction("foo", function(){});
@@ -110,40 +110,40 @@ exports.functions = {
         test.equal(gearman.functions[gearman.function_names[1]].encoding, "string", "Function encoding for bar");
         test.done();
     }
-}
+};
 
 // FUNCTIONS AND SERVES
 
-exports.functions_servers = {
+exports["functions + servers"] = {
     
-    add_function_to_existing_server: function(test){
+    "add function to existing server": function(test){
         var gearman = new Gearnode();
         
         gearman.addServer("foo");
         gearman.addFunction("bar", function(){});
         
         test.expect(1);
-        test.equal(gearman.servers["foo"].functions.length, 1, "One item in server functions array");
+        test.equal(gearman.servers.foo.functions.length, 1, "One item in server functions array");
         test.done();
     },
     
-    add_function_before_server: function(test){
+    "add function before server": function(test){
         var gearman = new Gearnode();
     
         gearman.addFunction("bar", function(){});
         gearman.addServer("foo");
         
         test.expect(1);
-        test.equal(gearman.servers["foo"].functions.length, 1, "One item in server functions array");
+        test.equal(gearman.servers.foo.functions.length, 1, "One item in server functions array");
         test.done();
     }
-}
+};
 
 // WORKER ID
 
-exports.worker_id = {
+exports["worker id"] = {
     
-    set_worker_id: function(test){
+    "set worker id": function(test){
         var gearman = new Gearnode();
         
         gearman.setWorkerId("bar");
@@ -153,7 +153,7 @@ exports.worker_id = {
         test.done();
     },
     
-    set_worker_id_to_servers: function(test){
+    "set worker id to servers": function(test){
         var gearman = new Gearnode();
         
         gearman.addServer("foo");
@@ -162,12 +162,12 @@ exports.worker_id = {
         gearman.setWorkerId("baz");
         
         test.expect(2);
-        test.equal(gearman.servers["foo"].connection.workerId, "baz", "Worker ID");
-        test.equal(gearman.servers["bar"].connection.workerId, "baz", "Worker ID");
+        test.equal(gearman.servers.foo.connection.workerId, "baz", "Worker ID");
+        test.equal(gearman.servers.bar.connection.workerId, "baz", "Worker ID");
         test.done();
     },
     
-    set_worker_id_before_server: function(test){
+    "set worker id before server": function(test){
         var gearman = new Gearnode();
         
         gearman.addServer("foo");
@@ -175,13 +175,13 @@ exports.worker_id = {
         gearman.addServer("bar");
         
         test.expect(2);
-        test.equal(gearman.servers["foo"].connection.workerId, "baz", "Worker ID");
-        test.equal(gearman.servers["bar"].connection.workerId, "baz", "Worker ID");
+        test.equal(gearman.servers.foo.connection.workerId, "baz", "Worker ID");
+        test.equal(gearman.servers.bar.connection.workerId, "baz", "Worker ID");
         test.done();
     }
-}
+};
 
-module.exports.worker = testCase({
+module.exports["worker behavior"] = testCase({
     setUp: function (callback) {
         this.worker = new Gearnode();
         this.worker.addServer("localhost",7003);
@@ -229,7 +229,7 @@ module.exports.worker = testCase({
         callback();
     },
     
-    upper: function (test) {
+    "upper": function (test) {
         
         test.expect(1);
         
@@ -250,7 +250,7 @@ module.exports.worker = testCase({
         });
     },
     
-    upper_utf8: function (test) {
+    "upper utf8": function (test) {
         
         test.expect(1);
         
@@ -271,7 +271,7 @@ module.exports.worker = testCase({
         });
     },
     
-    upper_base64: function (test) {
+    "upper base64": function (test) {
         
         test.expect(1);
         
@@ -292,7 +292,7 @@ module.exports.worker = testCase({
         });
     },
     
-    upper_expect_utf8: function (test) {
+    "upper expect utf8": function (test) {
         
         test.expect(1);
         
@@ -313,7 +313,7 @@ module.exports.worker = testCase({
         });
     },
     
-    upper_expect_base64: function (test) {
+    "upper expect base64": function (test) {
         
         test.expect(1);
         
@@ -334,7 +334,7 @@ module.exports.worker = testCase({
         });
     },
     
-    getExceptions: function(test){
+    "get exceptions": function(test){
         test.expect(2);
         this.client.getExceptions((function(err, success){
             test.ok(success,"Listening for exceptions");
@@ -359,7 +359,29 @@ module.exports.worker = testCase({
         }).bind(this));
     },
     
-    partial_data: function(test){
+    "fail": function (test) {
+        
+        test.expect(1);
+        
+        var job = this.client.submitJob("getfail","test", {encoding:"utf-8"});
+        
+        job.on("complete", function(data){
+            test.ok(false, "Should not complete");
+            test.done();
+        });
+        
+        job.on("fail", function(){
+            test.ok(true, "Function failed");
+            test.done();
+        });
+        
+        job.on("error", function(){
+            test.ok(false, "Function failed with error");
+            test.done();
+        });
+    },
+    
+    "partial data": function(test){
         test.expect(5);
         
         var job = this.client.submitJob("partial", "test", {encoding:"utf-8"}),
@@ -385,7 +407,7 @@ module.exports.worker = testCase({
         });
     },
     
-    warning: function (test) {
+    "warning": function (test) {
         
         test.expect(2);
         
@@ -402,28 +424,6 @@ module.exports.worker = testCase({
         
         job.on("fail", function(){
             test.ok(false, "Function failed");
-            test.done();
-        });
-        
-        job.on("error", function(){
-            test.ok(false, "Function failed with error");
-            test.done();
-        });
-    },
-    
-    fail: function (test) {
-        
-        test.expect(1);
-        
-        var job = this.client.submitJob("getfail","test", {encoding:"utf-8"});
-        
-        job.on("complete", function(data){
-            test.ok(false, "Should not complete");
-            test.done();
-        });
-        
-        job.on("fail", function(){
-            test.ok(true, "Function failed");
             test.done();
         });
         

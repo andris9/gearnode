@@ -87,7 +87,7 @@ Gearman.prototype.addServer = function(server_name, server_port){
     }).bind(this));
     
     this.update(server_name);
-}
+};
 
 Gearman.prototype.removeServer = function(server_name){
     var connection, pos;
@@ -108,13 +108,13 @@ Gearman.prototype.removeServer = function(server_name){
     delete this.servers[server_name];
     
     return true;
-}
+};
 
 Gearman.prototype.end = function(){
     for(var i=this.server_names.length-1; i>=0; i--){
         this.removeServer(this.server_names[i]);
     }
-}
+};
 
 Gearman.prototype.update = function(server_name){
     if(!server_name){
@@ -128,7 +128,7 @@ Gearman.prototype.update = function(server_name){
     if(this.workerId){
         this.setWorkerId(server_name, this.workerId);
     }
-}
+};
 
 Gearman.prototype.register = function(func_name, server_name){
     if(this.servers[server_name]){
@@ -141,9 +141,9 @@ Gearman.prototype.register = function(func_name, server_name){
             if(server_name){
                 this.register(func_name, server_name);
             }
-        }).bind(this))
+        }).bind(this));
     }
-}
+};
 
 Gearman.prototype.unregister = function(func_name, server_name){
     var pos;
@@ -157,9 +157,9 @@ Gearman.prototype.unregister = function(func_name, server_name){
             if(server_name){
                 this.unregister(func_name, server_name);
             }
-        }).bind(this))
+        }).bind(this));
     }
-}
+};
 
 // WORKER FUNCTIONS
 
@@ -178,7 +178,7 @@ Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid
             case "number":
                 payload = Number(payload && payload.toString("ascii") || "") || 0;
                 break;
-            case "buffer":
+            //case "buffer":
             default:
                 // keep buffer
         }
@@ -188,7 +188,7 @@ Gearman.prototype.runJob = function(server_name, handle, func_name, payload, uid
     }else{
         this.servers[server_name].connection.jobError(handle, "Function "+func_name+" not found");
     }
-}
+};
 
 
 
@@ -213,9 +213,9 @@ Gearman.prototype.setWorkerId = function(server_name, id){
             if(server_name){
                 this.setWorkerId(server_name, id);
             }
-        }).bind(this))
+        }).bind(this));
     }
-}
+};
 
 Gearman.prototype.addFunction = function(name, encoding, func){
     if(!name){
@@ -233,17 +233,17 @@ Gearman.prototype.addFunction = function(name, encoding, func){
         this.functions[name] = {
             func: func,
             encoding: encoding || "buffer"
-        }
+        };
         this.function_names.push(name);
         this.register(name);
     }else{
         this.functions[name] = {
             func: func,
             encoding: encoding || "buffer"
-        }
+        };
     }
     
-}
+};
 
 Gearman.prototype.removeFunction = function(name){
     var pos;
@@ -257,7 +257,7 @@ Gearman.prototype.removeFunction = function(name){
         this.function_names.splice(pos, 1);
         this.unregister(name);
     }
-}
+};
 
 // CLIENT FUNCTIONS
 
@@ -288,9 +288,9 @@ Gearman.prototype.getExceptions = function(server_name, callback){
             if(server_name){
                 this.getExceptions(server_name, callback);
             }
-        }).bind(this))
+        }).bind(this));
     }
-}
+};
 
 Gearman.prototype.submitJob = function(func_name, payload, options){
     if(!func_name){
@@ -300,7 +300,7 @@ Gearman.prototype.submitJob = function(func_name, payload, options){
     var server = this.servers[this.server_names[this.server_names.length-1]];
 
     return new Gearman.GearmanJob(func_name, payload, options, server);
-}
+};
 
 
 // WORKER JOB
@@ -311,40 +311,40 @@ Gearman.GearmanJob = function(func_name, payload, options, server){
     options.job = this;
     
     server.connection.submitJob(func_name, payload, options);
-}
+};
 utillib.inherits(Gearman.GearmanJob, EventEmitter);
 
 Gearman.GearmanWorker = function(handle, server_name, gm){
     this.handle = handle;
     this.server_name = server_name;
     this.gm = gm;
-}
+};
 
 Gearman.GearmanWorker.prototype.complete = function(response){
     this.gm.servers[this.server_name].connection.jobComplete(this.handle, response);
-}
+};
 
 Gearman.GearmanWorker.prototype.data = function(data){
     this.gm.servers[this.server_name].connection.jobData(this.handle, data);
-}
+};
 
 Gearman.GearmanWorker.prototype.warning = function(warning){
     this.gm.servers[this.server_name].connection.jobWarning(this.handle, warning);
-}
+};
 
 Gearman.GearmanWorker.prototype.fail = function(){
     this.gm.servers[this.server_name].connection.jobFail(this.handle);
-}
+};
 
 Gearman.GearmanWorker.prototype.error = function(error){
     this.gm.servers[this.server_name].connection.jobError(this.handle, error);
-}
+};
 
 Gearman.GearmanWorker.prototype.setStatus = function(numerator, denominator){
     numerator = parseInt(numerator, 10) || 0;
     denominator = parseInt(denominator, 10) || 0;
     this.gm.servers[this.server_name].connection.jobStatus(this.handle, numerator, denominator);
-}
+};
 
 module.exports = Gearman;
 
