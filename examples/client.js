@@ -1,4 +1,4 @@
-var Gearman = require("./gearnode");
+var Gearman = require("../lib/gearnode");
 
 client = new Gearman();
 client.addServer("localhost", 7003);

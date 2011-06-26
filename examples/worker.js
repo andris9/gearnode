@@ -1,4 +1,4 @@
-var Gearman = require("./gearnode");
+var Gearman = require("../lib/gearnode");
 
 String.prototype.reverse = function(){
     splitext = this.split("");

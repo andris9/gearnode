@@ -12,8 +12,7 @@
 
 Tests are run with *nodeunit*
 
-    npm install nodeunit -g
-    nodeunit tests.js
+    ./run_tests.sh
 
 Tests expect a Gearman daemon running on port 7003
 
@@ -191,4 +190,13 @@ Worker Job object has the following methods
             job.warning("Used number is smaller than zero!");
         }
         job.complete(payload * payload);
+    });
+
+### Detect connection errors
+
+When the connection is lost a "disconnect" event is emitted to the client/worker
+
+    worker.addServer("gearman.lan");
+    worker.on("disconnect", function(server){
+        console.log("Connection lost from "+server_name);
     });

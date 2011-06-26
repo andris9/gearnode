@@ -14,13 +14,17 @@
         "type" : "git",
         "url" : "http://github.com/andris9/nodemailer.git"
     },
-    "main" : "./gearnode",
+    "main" : "./lib/gearnode",
     "licenses" : [
         {
             "type": "MIT",
             "url": "http://github.com/andris9/gearnode/blob/master/LICENSE"
         }
     ],
+    "dependencies": {
+        "optimist":"*",
+        "nodeunit":"*"
+    },
     "engine": [ "node >=0.3.0" ],
     "keywords": ["gearman", "worker", "message queue"]
 }
