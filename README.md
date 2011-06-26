@@ -22,7 +22,7 @@ Tests expect a Gearman daemon running on port 7003
 
     var Gearnode = require("gearnode");
 
-    worker= new Gearnode();
+    worker = new Gearnode();
     worker.addServer();
     
     worker.addFunction("upper", function(payload, job){
