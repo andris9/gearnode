@@ -193,6 +193,14 @@ module.exports["worker behavior"] = testCase({
             job.complete(payload.toString("utf-8").toUpperCase());
         });
         
+        this.worker.addFunction("testjob_reverse_binary", function(payload, job){
+            var data = new Buffer(payload.length);
+            for(var i=0; i<=payload.length; i++){
+                data[payload.length-i-1] = payload[i];
+            }
+            job.complete(data);
+        });
+        
         this.worker.addFunction("testjob_upper_utf8","utf-8", function(payload, job){
             job.complete(payload.toUpperCase());
         });
@@ -208,6 +216,14 @@ module.exports["worker behavior"] = testCase({
         this.worker.addFunction("testjob_partial",function(payload, job){
             for(var i=0; i<4; i++){
                 job.data("data" + i);
+            }
+            job.complete("ready");
+        });
+        
+        this.worker.addFunction("testjob_status",function(payload, job){
+            var total = 200;
+            for(var i=5; i>0; i--){
+                job.setStatus(total/i, total);
             }
             job.complete("ready");
         });
@@ -235,7 +251,7 @@ module.exports["worker behavior"] = testCase({
         callback();
     },
     
-    "upper": function (test) {
+    "submit job": function (test) {
         
         test.expect(1);
         
@@ -256,7 +272,40 @@ module.exports["worker behavior"] = testCase({
         });
     },
     
-    "upper utf8": function (test) {
+    "submit job, send/receive binary": function (test) {
+        
+        test.expect(1);
+        
+        var data = new Buffer(256);
+        for(var i=0; i<256; i++){
+            data[i] = i;
+        }
+        
+        var job = this.client.submitJob("testjob_reverse_binary", data);
+        
+        job.on("complete", function(buf){    
+            var ok = true;
+            for(var i=0; i<=buf.length; i++){
+                if(data[buf.length-i-1] != buf[i]){
+                    ok = false;
+                    break;
+                };
+            }
+            test.ok(ok, "Received reversed binary");
+            test.done();
+        });
+        
+        job.on("fail", function(){
+            test.ok(false, "Function failed");
+            test.done();
+        });
+        job.on("error", function(){
+            test.ok(false, "Function failed with error");
+            test.done();
+        });
+    },
+    
+    "submit job, send payload utf-8": function (test) {
         
         test.expect(1);
         
@@ -277,7 +326,7 @@ module.exports["worker behavior"] = testCase({
         });
     },
     
-    "upper base64": function (test) {
+    "submit job, send payload base64": function (test) {
         
         test.expect(1);
         
@@ -298,7 +347,7 @@ module.exports["worker behavior"] = testCase({
         });
     },
     
-    "upper expect utf8": function (test) {
+    "submit job, expect utf-8 response": function (test) {
         
         test.expect(1);
         
@@ -319,7 +368,7 @@ module.exports["worker behavior"] = testCase({
         });
     },
     
-    "upper expect base64": function (test) {
+    "submit job, expect base64 response": function (test) {
         
         test.expect(1);
         
@@ -340,7 +389,7 @@ module.exports["worker behavior"] = testCase({
         });
     },
     
-    "get exceptions": function(test){
+    "subscribe for exceptions": function(test){
         test.expect(1);
         this.client.getExceptions((function(err, success){
             test.ok(success,"Listening for exceptions");
@@ -393,6 +442,33 @@ module.exports["worker behavior"] = testCase({
         
         job.on("data", function(data){
             test.equal("data" + (i++), data, "Function part OK");
+        });
+    },
+    
+    "status updates": function(test){
+        test.expect(11);
+        
+        var job = this.client.submitJob("testjob_status", "test", {encoding:"utf-8"}),
+            i = 0, data = [40, 50, 66, 100, 200], total=200;
+        
+        job.on("complete", function(data){
+            test.equal(data, "ready", "Function success");
+            test.done();
+        });
+        
+        job.on("fail", function(){
+            test.ok(false, "Function failed");
+            test.done();
+        });
+        
+        job.on("error", function(){
+            test.ok(false, "Function failed with error");
+            test.done();
+        });
+        
+        job.on("status", function(numerator, denominator){
+            test.equal(data[i++], numerator, "Progress data");
+            test.equal(total, denominator, "Progress total");
         });
     },
     
