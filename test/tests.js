@@ -136,6 +136,18 @@ exports["functions + servers"] = {
         test.expect(1);
         test.equal(gearman.servers.foo.functions.length, 1, "One item in server functions array");
         test.done();
+    },
+    
+    "add function without server throws": function(test){
+        var gearman = new Gearnode();
+    
+        gearman.addFunction("bar", function(){});
+
+        test.throws(function(){
+            gearman.submitJob("test","test");
+        });
+        
+        test.done();
     }
 };
 
@@ -289,7 +301,7 @@ module.exports["worker behavior"] = testCase({
                 if(data[buf.length-i-1] != buf[i]){
                     ok = false;
                     break;
-                };
+                }
             }
             test.ok(ok, "Received reversed binary");
             test.done();
@@ -505,7 +517,7 @@ module.exports["worker behavior"] = testCase({
         var job = this.client.submitJob("testjob_disconnect","test");
         
         job.on("complete", function(data){
-            test.ok(false, "Should not complete")
+            test.ok(false, "Should not complete");
             test.done();
         });
                 
@@ -536,7 +548,7 @@ module.exports["worker behavior"] = testCase({
         });
         
         job.on("complete", function(data){
-            test.ok(false, "Should not complete")
+            test.ok(false, "Should not complete");
             test.done();
         });
                 
