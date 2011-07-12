@@ -200,3 +200,7 @@ When the connection is lost a "disconnect" event is emitted to the client/worker
     worker.on("disconnect", function(server){
         console.log("Connection lost from "+server_name);
     });
+
+## License
+
+MIT
