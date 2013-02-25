@@ -1,3 +1,7 @@
+# NB !!ABANDONWARE!!
+
+I'm not maintaining this repo anymore. Sorry.
+
 # Gearnode
 
 **Gearnode** is a Node.JS client/worker module for Gearman.
